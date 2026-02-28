@@ -20,10 +20,11 @@
  *    ui_sleep.h/.cpp   Sleep screen
  *    creature_gen.h/.cpp Procedural creature generation from ChipId
  *
- *  Buttons:
- *    BOOT (GPIO 0) = BTN_A  → cycle / next / catch
- *    PWR  (GPIO 9) = BTN_B  → select / action / back
- *    3rd button    = hardware RESET
+ *  Single-button control (BOOT / GPIO 0) via OneButton library:
+ *    single click  → cycle / next / catch
+ *    double click  → select / action / back
+ *    long press    → toggle sleep
+ *    hardware RESET button available separately
  *
  *  Future hooks:
  *    - BLE / ESP-NOW communication module
@@ -98,7 +99,7 @@ void loop() {
   uint32_t now = millis();
 
   // ── Input ─────────────────────────────────────────────
-  inputUpdate(now);
+  inputUpdate();
 
   // ── Full redraw (view switch or forced) ───────────────
   if (viewDirty) {

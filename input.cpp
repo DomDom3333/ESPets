@@ -1,56 +1,32 @@
 /*
- * input.cpp — Button input handling
- * ───────────────────────────────────
- * Pure input detection — no game/UI logic.
- * Dispatches to nav.h callbacks.
+ * input.cpp — Single-button input via OneButton library
+ * ──────────────────────────────────────────────────────
+ * Replaces the manual two-button debounce with OneButton,
+ * mapping click / double-click / long-press to the three
+ * navigation callbacks in nav.h.
  */
 #include "input.h"
 #include "nav.h"
+#include <OneButton.h>
 
-// ── Internal state ────────────────────────────────────────
-static bool     sAWasDown   = false;
-static bool     sBWasDown   = false;
-static uint32_t sADownAt    = 0;
-static bool     sLongUsed   = false;
-static uint32_t sLastBTime  = 0;
+// ── OneButton instance (active LOW, internal pull-up) ────
+static OneButton btn(BTN_PIN, true, true);
+
+// ── Callbacks ────────────────────────────────────────────
+static void onClick()      { navOnShortPressA(); }
+static void onDoubleClick(){ navOnShortPressB(); }
+static void onLongPress()  { navOnLongPressA();  }
 
 void inputInit() {
-  pinMode(BTN_A, INPUT_PULLUP);
-  pinMode(BTN_B, INPUT_PULLUP);
+  btn.attachClick(onClick);
+  btn.attachDoubleClick(onDoubleClick);
+  btn.attachLongPressStart(onLongPress);
+
+  // Drain any boot-press so it isn't misread as a click
   delay(200);
-  // Drain any boot-press on BTN_A
-  while (digitalRead(BTN_A) == LOW) delay(10);
-  sADownAt = millis();
+  while (digitalRead(BTN_PIN) == LOW) delay(10);
 }
 
-void inputUpdate(uint32_t now) {
-  bool aDown = (digitalRead(BTN_A) == LOW);
-  bool bDown = (digitalRead(BTN_B) == LOW);
-
-  // ── Button A ────────────────────────────────────────────
-  if (aDown && !sAWasDown) {
-    sADownAt  = now;
-    sLongUsed = false;
-  }
-  if (aDown && sAWasDown && !sLongUsed) {
-    if (now - sADownAt >= LONG_PRESS_MS) {
-      sLongUsed = true;
-      navOnLongPressA();
-    }
-  }
-  if (!aDown && sAWasDown) {
-    if (!sLongUsed && (now - sADownAt) >= DEBOUNCE_MS) {
-      navOnShortPressA();
-    }
-  }
-  sAWasDown = aDown;
-
-  // ── Button B ────────────────────────────────────────────
-  if (!bDown && sBWasDown) {
-    if ((now - sLastBTime) >= DEBOUNCE_MS) {
-      sLastBTime = now;
-      navOnShortPressB();
-    }
-  }
-  sBWasDown = bDown;
+void inputUpdate() {
+  btn.tick();
 }
