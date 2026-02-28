@@ -5,6 +5,7 @@
  */
 #include "ui_main.h"
 #include "ui_common.h"
+#include "creature_gen.h"
 #include "pet.h"
 #include "nav.h"
 
@@ -48,10 +49,11 @@ static void drawGroundLine() {
 }
 
 static void drawPetNameMood() {
-  gfx->setTextColor(COL_CYAN);
+  gfx->setTextColor(creatureDNA.bodyColor);
   gfx->setTextSize(1);
-  gfx->setCursor(105, 154);
-  gfx->print("BYTE");
+  int nameW = strlen(creatureDNA.name) * 6;
+  gfx->setCursor((SCREEN_W - nameW) / 2, 154);
+  gfx->print(creatureDNA.name);
 
   gfx->setTextColor(COL_YELLOW);
   const char* ms = petGetMoodString();

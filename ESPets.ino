@@ -1,6 +1,6 @@
 /*
  * ════════════════════════════════════════════════════════════
- *  BYTE — Tamagotchi  v6.0 (modular)
+ *  ESPets — Tamagotchi  v6.0 (modular)
  *  Waveshare ESP32-C6-LCD-1.69  ·  ST7789  ·  240×280
  *  Library: Arduino_GFX_Library by moononournation
  *
@@ -18,6 +18,7 @@
  *    ui_play.h/.cpp    Play screen
  *    ui_status.h/.cpp  Status screen
  *    ui_sleep.h/.cpp   Sleep screen
+ *    creature_gen.h/.cpp Procedural creature generation from ChipId
  *
  *  Buttons:
  *    BOOT (GPIO 0) = BTN_A  → cycle / next / catch
@@ -26,7 +27,6 @@
  *
  *  Future hooks:
  *    - BLE / ESP-NOW communication module
- *    - Seed-based creature generation
  *    - Additional mini-games (game_*.h/.cpp)
  *    - Persistent storage (NVS)
  * ════════════════════════════════════════════════════════════
@@ -36,6 +36,7 @@
 #include "types.h"
 #include "input.h"
 #include "pet.h"
+#include "creature_gen.h"
 #include "game_star.h"
 #include "nav.h"
 #include "ui_common.h"
@@ -47,7 +48,7 @@
 void setup() {
   Serial.begin(115200);
   delay(500);
-  Serial.println("\n\n=== BYTE Tamagotchi v6 ===");
+  Serial.println("\n\n=== ESPets Tamagotchi v6 ===");
 
   // ── Backlight ─────────────────────────────────────────
   pinMode(PIN_BL, OUTPUT);
@@ -69,6 +70,14 @@ void setup() {
   }
 
   gfx->fillScreen(COL_BG_MAIN);
+
+  // ── Creature generation (from ChipId) ──────────────────
+  uint64_t mac = ESP.getEfuseMac();
+  uint32_t chipSeed = (uint32_t)(mac ^ (mac >> 32));
+  creatureInit(chipSeed);
+  petApplyDNA();
+  pet.seed = chipSeed;
+  creatureUpdateTime(millis());
 
   // ── Splash ────────────────────────────────────────────
   drawSplash();
@@ -101,6 +110,7 @@ void loop() {
   if (now - lastAnimTick >= ANIM_INTERVAL) {
     lastAnimTick = now;
     animFrame ^= 1;
+    creatureUpdateTime(now);
     navUpdateAnimation();
   }
 

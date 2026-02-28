@@ -4,8 +4,8 @@
  * Enums, structs, and extern references to global state.
  * Actual definitions live in globals.cpp.
  *
- * Future: PetState will grow a `uint32_t seed` field for
- * procedural creature generation, and a `uint8_t flags`
+ * PetState includes a seed field for procedural creature
+ * generation (derived from ChipId).  Future: `uint8_t flags`
  * bitfield for BLE/ESP-NOW status.
  */
 #pragma once
@@ -33,8 +33,8 @@ struct PetState {
   uint8_t age      = 3;
   uint8_t weight   = 12;
   bool    sleeping = false;
+  uint32_t seed    = 0;       // creature generation seed (ChipId)
   // Future:
-  // uint32_t seed  = 0;       // creature generation seed
   // uint8_t  stage = 0;       // evolution stage
   // uint8_t  flags = 0;       // BLE paired, etc.
 };

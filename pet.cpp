@@ -5,6 +5,7 @@
  * Returns notification strings via triggerNotif (from ui_common).
  */
 #include "pet.h"
+#include "creature_gen.h"
 #include "ui_common.h"   // triggerNotif
 
 // ── Stat decay / recovery ─────────────────────────────────
@@ -21,10 +22,15 @@ void petTickDecay() {
   }
 
   // Trigger warnings
-  if (pet.hunger < 15)
-    triggerNotif("BYTE IS HUNGRY!");
-  else if (pet.energy < 10 && !pet.sleeping)
-    triggerNotif("BYTE IS TIRED!");
+  if (pet.hunger < 15) {
+    char msg[36];
+    snprintf(msg, sizeof(msg), "%s IS HUNGRY!", creatureDNA.name);
+    triggerNotif(msg);
+  } else if (pet.energy < 10 && !pet.sleeping) {
+    char msg[36];
+    snprintf(msg, sizeof(msg), "%s IS TIRED!", creatureDNA.name);
+    triggerNotif(msg);
+  }
 }
 
 // ── Feeding ───────────────────────────────────────────────
@@ -62,4 +68,12 @@ const char* petGetMoodString() {
 // ── Sleep ─────────────────────────────────────────────────
 void petSetSleeping(bool sleep) {
   pet.sleeping = sleep;
+}
+
+// ── Apply creature DNA stat modifiers ─────────────────────
+void petApplyDNA() {
+  pet.hp     = (uint8_t)constrain(90  + creatureDNA.hpMod,     50, 100);
+  pet.hunger = (uint8_t)constrain(60  + creatureDNA.hungerMod, 30, 100);
+  pet.happy  = (uint8_t)constrain(75  + creatureDNA.happyMod,  40, 100);
+  pet.energy = (uint8_t)constrain(80  + creatureDNA.energyMod, 40, 100);
 }
