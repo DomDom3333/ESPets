@@ -5,6 +5,7 @@
  */
 #include "ui_sleep.h"
 #include "ui_common.h"
+#include "creature_gen.h"
 #include "nav.h"
 
 // ── Local helper: draw a labelled recovery bar ────────────
@@ -27,8 +28,12 @@ static void drawRecoveryBar(int y, const char* lbl,
 // ══════════════════════════════════════════════════════════
 
 void uiSleepDraw() {
-  gfx->setTextColor(COL_CYAN); gfx->setTextSize(1);
-  gfx->setCursor(62, 40);       gfx->print("BYTE IS SLEEPING");
+  char sleepMsg[24];
+  snprintf(sleepMsg, sizeof(sleepMsg), "%s IS SLEEPING", creatureDNA.name);
+  gfx->setTextColor(creatureDNA.bodyColor); gfx->setTextSize(1);
+  int sw = strlen(sleepMsg) * 6;
+  gfx->setCursor((SCREEN_W - sw) / 2, 40);
+  gfx->print(sleepMsg);
 
   drawPixelPet(120, 128, 's', false);
 

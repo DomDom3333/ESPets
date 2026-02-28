@@ -20,3 +20,6 @@ const char* petGetMoodString();    // "HAPPY :)" etc.
 
 // Sleep toggle
 void        petSetSleeping(bool sleep);
+
+// Apply creature DNA stat modifiers to initial pet state
+void        petApplyDNA();

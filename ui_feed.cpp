@@ -5,6 +5,7 @@
  */
 #include "ui_feed.h"
 #include "ui_common.h"
+#include "creature_gen.h"
 
 void uiFeedDraw() {
   drawViewHeader("FEED", COL_GREEN, "A=SCROLL B=SEL");
@@ -70,5 +71,11 @@ void uiFeedDraw() {
   // Prompt
   gfx->setTextColor(COL_DIM);
   gfx->setCursor(24, barY + 16);
-  gfx->print(selectedFood < 6 ? "Press B to feed BYTE!" : "Press B to go back");
+  if (selectedFood < 6) {
+    char feedHint[32];
+    snprintf(feedHint, sizeof(feedHint), "Press B to feed %s!", creatureDNA.name);
+    gfx->print(feedHint);
+  } else {
+    gfx->print("Press B to go back");
+  }
 }

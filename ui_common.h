@@ -4,8 +4,8 @@
  * Pixel pet, notifications, splash, view headers.
  * Used by all ui_*.cpp screen modules.
  *
- * Future: drawPixelPet will accept a seed parameter
- * to procedurally vary body shape / colours.
+ * drawPixelPet reads from the global creatureDNA
+ * to procedurally vary body shape, colours, and features.
  */
 #pragma once
 
