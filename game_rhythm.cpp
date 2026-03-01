@@ -6,25 +6,8 @@
 #include "game_rhythm.h"
 #include "input.h"
 
-// Global game state
-RhythmGameState rhythmGame = {
-  .round = 0,
-  .beatIndex = 0,
-  .roundComplete = false,
-  .roundStartTime = 0,
-  .beatInterval = 1000,
-  .roundScore = 0,
-  .totalScore = 0,
-  .bestScore = 0,
-  .perfectCount = 0,
-  .goodCount = 0,
-  .missCount = 0,
-  .lastAccuracy = 0,
-  .feedbackAge = 0,
-  .feedbackColor = 0,
-  .lastProcessedClick = 0,
-  .currentBeatProcessed = false
-};
+// Global game state (defaults from struct definition in types.h)
+RhythmGameState rhythmGame;
 
 // Beat interval progression (ms between beats)
 // Round 0: Easy (1000ms)
@@ -44,6 +27,9 @@ static const uint8_t BEATS_PER_ROUND = 10;
 
 // Feedback animation (ticks)
 #define FEEDBACK_DURATION  10   // 600ms ticks = ~6 seconds
+
+// Forward declaration
+static void rhythmGameStartRound();
 
 // ══════════════════════════════════════════════════════════
 //  GAME LIFECYCLE

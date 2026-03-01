@@ -16,9 +16,9 @@
 #define MPU6050_REG_TEMP_OUT_H      0x41
 #define MPU6050_REG_GYRO_XOUT_H     0x43
 
-// Static state
-static IMUData           lastIMUData = {0, 0, 0, 0, 0, 0, 0, 0};
-static IMUCalibration    imuCal      = {{0, 0, 0, 0, 0, 0}, false};
+// Static state (zero-initialized by default for static storage duration)
+static IMUData        lastIMUData;
+static IMUCalibration imuCal;
 
 // ══════════════════════════════════════════════════════════
 //  I2C REGISTER ACCESS

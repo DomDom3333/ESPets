@@ -5,54 +5,49 @@
  */
 #include "ui_play_balance.h"
 #include "game_balance.h"
+#include "ui_common.h"
 
-// Rendering constants
-#define GAME_X      12   // Game area x offset
-#define GAME_Y      32   // Game area y offset
-#define GAME_W      216  // Game area width (10 cells * 21.6 px)
-#define GAME_H      145  // Game area height (8 rows * 18.1 px)
-#define CELL_W      21   // Pixels per maze cell
-#define CELL_H      18   // Pixels per maze cell
+// Maze rendering geometry (fits within 240x280 screen)
+#define GAME_X      8    // Game area x offset
+#define GAME_Y      32   // Game area y offset (below header)
+#define GAME_W      224  // 10 cells * CELL_W
+#define GAME_H      160  // 8 rows * CELL_H
+#define CELL_W      22   // Width of each maze cell in pixels
+#define CELL_H      20   // Height of each maze cell in pixels
 
-// Colors
-#define COL_WALL    ((uint16_t)0xF800)   // Red
-#define COL_GOAL    ((uint16_t)0x3FE3)   // Green
-#define COL_BALL    ((uint16_t)0xFF60)   // Yellow
-#define COL_EMPTY   ((uint16_t)0x0811)   // Dark bg
-#define COL_BORDER  ((uint16_t)0x07FF)   // Cyan
+// Colors for maze elements
+#define COL_WALL_C  COL_PINK
+#define COL_GOAL_C  COL_GREEN
+#define COL_BALL_C  COL_YELLOW
+#define COL_CELL_C  COL_PLAY_BG
 
 // ══════════════════════════════════════════════════════════
 //  HELPERS
 // ══════════════════════════════════════════════════════════
 
-static void drawMazeCell(int cellX, int cellY, uint8_t cellType) {
-  // Convert cell coordinates to screen coordinates
-  int sx = GAME_X + (cellX * CELL_W);
-  int sy = GAME_Y + (cellY * CELL_H);
-
-  uint16_t color = COL_EMPTY;
-  if (cellType == MAZE_WALL) {
-    color = COL_WALL;
-  } else if (cellType == MAZE_GOAL) {
-    color = COL_GOAL;
+static void drawMazeFull() {
+  // Draw entire maze grid from current state
+  const uint8_t* maze = balanceGameGetMazePattern();
+  for (int y = 0; y < 8; y++) {
+    for (int x = 0; x < 10; x++) {
+      uint8_t cell = maze[y * 10 + x];
+      uint16_t color = (cell == MAZE_WALL) ? COL_WALL_C :
+                       (cell == MAZE_GOAL) ? COL_GOAL_C : COL_CELL_C;
+      gfx->fillRect(GAME_X + x * CELL_W, GAME_Y + y * CELL_H,
+                    CELL_W - 1, CELL_H - 1, color);
+    }
   }
-
-  gfx->fillRect(sx, sy, CELL_W, CELL_H, color);
+  // Border around maze
+  gfx->drawRect(GAME_X - 1, GAME_Y - 1, GAME_W + 2, GAME_H + 2, COL_DIM);
 }
 
-static void drawBall() {
-  // Get ball position in game world (0-100 scale)
-  float ballX = balanceGameGetBallX();
-  float ballY = balanceGameGetBallY();
-
-  // Convert to screen coordinates
-  // Game area is GAME_W x GAME_H pixels, representing 100x80 game units
-  int screenX = GAME_X + (int)(ballX * GAME_W / 100.0f);
-  int screenY = GAME_Y + (int)(ballY * GAME_H / 80.0f);
-
-  // Draw ball as small circle (2-pixel radius)
-  gfx->fillCircle(screenX, screenY, 2, COL_BALL);
-  gfx->drawCircle(screenX, screenY, 2, ((uint16_t)0xFFFF));  // White outline
+static void drawBallAt(float bx, float by, uint16_t color) {
+  // Convert 0-100 game coords to screen pixels inside the game area
+  int sx = GAME_X + (int)(bx * GAME_W / 100.0f);
+  int sy = GAME_Y + (int)(by * GAME_H / 80.0f);
+  sx = constrain(sx, GAME_X + 3, GAME_X + GAME_W - 3);
+  sy = constrain(sy, GAME_Y + 3, GAME_Y + GAME_H - 3);
+  gfx->fillCircle(sx, sy, 3, color);
 }
 
 // ══════════════════════════════════════════════════════════
@@ -60,113 +55,117 @@ static void drawBall() {
 // ══════════════════════════════════════════════════════════
 
 void uiPlayBalanceDraw() {
-  // Full screen redraw
-  gfx->fillScreen(((uint16_t)0x1013));  // COL_BG_PLAY
+  drawViewHeader("TILT MAZE", COL_CYAN, "TILT=MOVE  B=BACK");
 
-  // ─── HEADER ───────────────────────────────────────────────
-  gfx->fillRect(0, 0, SCREEN_W, 24, ((uint16_t)0x1082));  // COL_DARK
-  gfx->setTextColor(((uint16_t)0x07FF), ((uint16_t)0x1082));  // COL_CYAN
-  gfx->setFont(&FreeSans9pt7b);
-  gfx->setCursor(8, 18);
-  gfx->println("TILT MAZE");
+  // ─── MAZE ─────────────────────────────────────────────
+  gfx->fillRect(GAME_X, GAME_Y, GAME_W, GAME_H, COL_CELL_C);
+  drawMazeFull();
 
-  // Level and timer (top right)
-  gfx->setCursor(SCREEN_W - 60, 18);
-  gfx->printf("L%d", balanceGameGetLevel());
+  // ─── BALL ─────────────────────────────────────────────
+  drawBallAt(balanceGameGetBallX(), balanceGameGetBallY(), COL_BALL_C);
 
-  // ─── GAME AREA (MAZE) ──────────────────────────────────
-  gfx->drawRect(GAME_X - 1, GAME_Y - 1, GAME_W + 2, GAME_H + 2, COL_BORDER);
+  // ─── INFO BAR ─────────────────────────────────────────
+  gfx->drawFastHLine(0, GAME_Y + GAME_H + 4, SCREEN_W, COL_DIM);
 
-  // Draw maze
-  const uint8_t* maze = balanceGameGetMazePattern();
-  for (int y = 0; y < 8; y++) {
-    for (int x = 0; x < 10; x++) {
-      uint8_t cellType = maze[y * 10 + x];
-      drawMazeCell(x, y, cellType);
-    }
+  gfx->setTextColor(COL_DIM); gfx->setTextSize(1);
+  gfx->setCursor(8, GAME_Y + GAME_H + 14);
+  gfx->printf("Lv%d  Score:", balanceGameGetLevel());
+
+  gfx->setTextColor(COL_YELLOW); gfx->setTextSize(1);
+  char sbuf[8]; sprintf(sbuf, "%d", balanceGameGetScore());
+  gfx->setCursor(112, GAME_Y + GAME_H + 14);
+  gfx->print(sbuf);
+
+  gfx->setTextColor(COL_DIM); gfx->setTextSize(1);
+  gfx->setCursor(SCREEN_W - 70, GAME_Y + GAME_H + 14);
+  gfx->printf("Best:%d", balanceGame->bestScore);
+
+  // Timer bar
+  uint32_t timeLeft = 30000;
+  if (balanceGame->levelStartTime > 0) {
+    uint32_t elapsed = millis() - balanceGame->levelStartTime;
+    timeLeft = (elapsed < 30000) ? 30000 - elapsed : 0;
   }
+  int timerFill = (int)(timeLeft * 200 / 30000);
+  gfx->fillRect(20, GAME_Y + GAME_H + 20, 200, 5, COL_DARK);
+  uint16_t tc = (timeLeft > 15000) ? COL_GREEN : (timeLeft > 7500 ? COL_YELLOW : COL_PINK);
+  if (timerFill > 0) gfx->fillRect(20, GAME_Y + GAME_H + 20, timerFill, 5, tc);
+  gfx->drawRect(20, GAME_Y + GAME_H + 20, 200, 5, COL_DIM);
 
-  // Draw ball
-  drawBall();
-
-  // ─── SCORE DISPLAY ────────────────────────────────────
-  gfx->setFont(&FreeSans9pt7b);
-  gfx->setTextColor(((uint16_t)0xFF60), ((uint16_t)0x1013));  // Yellow
-  gfx->setCursor(8, 190);
-  gfx->printf("SCORE: %d", balanceGameGetScore());
-
-  // ─── INSTRUCTIONS ─────────────────────────────────────
-  gfx->setFont(&FreeSans7pt7b);
-  gfx->setTextColor(((uint16_t)0xFFFF), ((uint16_t)0x1013));
-  gfx->setCursor(8, 210);
-  gfx->println("Tilt to move, reach green!");
-
-  // ─── BEST SCORE ───────────────────────────────────────
-  gfx->setCursor(8, 230);
-  gfx->printf("Best: %d", balanceGame->bestScore);
+  gfx->setTextColor(COL_DIM); gfx->setTextSize(1);
+  gfx->setCursor(8, GAME_Y + GAME_H + 34);
+  gfx->print("Reach the GREEN zone!");
 }
 
 // ══════════════════════════════════════════════════════════
 //  ANIMATION UPDATE (called frequently during gameplay)
 // ══════════════════════════════════════════════════════════
 
-void uiPlayBalanceAnimate() {
-  // Called every frame to update ball position and game state
+// Track previous ball position so we can erase it without full redraw
+static float prevBallX = -1, prevBallY = -1;
 
-  // ─── CLEAR AND REDRAW GAME AREA ───────────────────────
-  // Redraw maze (cells might have rotated)
-  const uint8_t* maze = balanceGameGetMazePattern();
-  for (int y = 0; y < 8; y++) {
-    for (int x = 0; x < 10; x++) {
-      uint8_t cellType = maze[y * 10 + x];
-      drawMazeCell(x, y, cellType);
-    }
+void uiPlayBalanceAnimate() {
+  // Erase previous ball position
+  if (prevBallX >= 0) {
+    // Redraw the cell under the old ball position
+    const uint8_t* maze = balanceGameGetMazePattern();
+    int cx = (int)(prevBallX * 10 / 100);
+    int cy = (int)(prevBallY *  8 / 80);
+    cx = constrain(cx, 0, 9);
+    cy = constrain(cy, 0, 7);
+    uint8_t cell = maze[cy * 10 + cx];
+    uint16_t color = (cell == MAZE_WALL) ? COL_WALL_C :
+                     (cell == MAZE_GOAL) ? COL_GOAL_C : COL_CELL_C;
+    drawBallAt(prevBallX, prevBallY, color);
   }
 
-  // Redraw ball
-  drawBall();
+  float bx = balanceGameGetBallX();
+  float by = balanceGameGetBallY();
 
-  // ─── UPDATE SCORE ─────────────────────────────────────
-  gfx->fillRect(8, 185, SCREEN_W - 16, 10, ((uint16_t)0x1013));
-  gfx->setFont(&FreeSans9pt7b);
-  gfx->setTextColor(((uint16_t)0xFF60), ((uint16_t)0x1013));
-  gfx->setCursor(8, 195);
-  gfx->printf("SCORE: %d", balanceGameGetScore());
+  // Draw new ball position
+  drawBallAt(bx, by, COL_BALL_C);
+  prevBallX = bx;
+  prevBallY = by;
 
-  // ─── CHECK GAME STATE ─────────────────────────────────
+  // ─── TIMER BAR UPDATE ─────────────────────────────────
+  uint32_t timeLeft = 30000;
+  if (balanceGame->levelStartTime > 0) {
+    uint32_t elapsed = millis() - balanceGame->levelStartTime;
+    timeLeft = (elapsed < 30000) ? 30000 - elapsed : 0;
+  }
+  int timerFill = (int)(timeLeft * 200 / 30000);
+  gfx->fillRect(20, GAME_Y + GAME_H + 20, 200, 5, COL_DARK);
+  uint16_t tc = (timeLeft > 15000) ? COL_GREEN : (timeLeft > 7500 ? COL_YELLOW : COL_PINK);
+  if (timerFill > 0) gfx->fillRect(20, GAME_Y + GAME_H + 20, timerFill, 5, tc);
+
+  // ─── LEVEL COMPLETE OVERLAY ────────────────────────────
   if (balanceGameIsLevelComplete()) {
-    // Show completion message
-    gfx->fillRect(40, 80, SCREEN_W - 80, 30, ((uint16_t)0x3FE3));  // Green bg
-    gfx->setFont(&FreeSans12pt7b);
-    gfx->setTextColor(((uint16_t)0xFFFF), ((uint16_t)0x3FE3));
-    gfx->setCursor(SCREEN_W / 2 - 50, 105);
-    gfx->println("LEVEL COMPLETE!");
+    gfx->fillRect(30, 80, SCREEN_W - 60, 36, COL_GREEN);
+    gfx->setTextColor(COL_WHITE); gfx->setTextSize(2);
+    gfx->setCursor(38, 100);
+    gfx->print("LEVEL DONE!");
 
-    // Auto-advance after 2 seconds
     static uint32_t completeTime = 0;
-    if (completeTime == 0) {
-      completeTime = millis();
-    }
+    if (completeTime == 0) completeTime = millis();
     if (millis() - completeTime > 2000) {
       balanceGameCheckWinCondition();
       completeTime = 0;
+      prevBallX = -1;  // Force full repaint
+      viewDirty = true;
     }
   } else if (balanceGameIsLevelFailed()) {
-    // Show failure message
-    gfx->fillRect(40, 80, SCREEN_W - 80, 30, ((uint16_t)0xF800));  // Red bg
-    gfx->setFont(&FreeSans12pt7b);
-    gfx->setTextColor(((uint16_t)0xFFFF), ((uint16_t)0xF800));
-    gfx->setCursor(SCREEN_W / 2 - 40, 105);
-    gfx->println("TIME'S UP!");
+    gfx->fillRect(30, 80, SCREEN_W - 60, 36, COL_PINK);
+    gfx->setTextColor(COL_WHITE); gfx->setTextSize(2);
+    gfx->setCursor(50, 100);
+    gfx->print("TIME'S UP!");
 
-    // Auto-retry after 2 seconds
     static uint32_t failTime = 0;
-    if (failTime == 0) {
-      failTime = millis();
-    }
+    if (failTime == 0) failTime = millis();
     if (millis() - failTime > 2000) {
       balanceGameCheckWinCondition();
       failTime = 0;
+      prevBallX = -1;
+      viewDirty = true;
     }
   }
 }

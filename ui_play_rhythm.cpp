@@ -11,15 +11,20 @@
 //  HELPERS
 // ══════════════════════════════════════════════════════════
 
-// Draw a horizontal bar with a filled portion (0-100%)
-static void drawProgressBar(int x, int y, int w, int h,
-                           int fillPercent, uint16_t barColor, uint16_t bgColor) {
-  int fillWidth = (w * fillPercent) / 100;
-  gfx->fillRect(x, y, w, h, bgColor);
-  if (fillWidth > 0) {
-    gfx->fillRect(x, y, fillWidth, h, barColor);
+static void drawBeatMeter() {
+  // Beat meter: fills left-to-right showing progress to next beat
+  if (rhythmGame.roundStartTime == 0) return;
+
+  uint32_t elapsed = millis() - rhythmGame.roundStartTime;
+  int barFill = (elapsed % rhythmGame.beatInterval) * 200 / rhythmGame.beatInterval;
+
+  gfx->fillRect(20, 48, 200, 8, COL_DARK);
+  if (barFill > 0) {
+    // Color shifts from green to red as beat approaches
+    uint16_t barColor = (barFill > 160) ? COL_PINK : (barFill > 80 ? COL_YELLOW : COL_GREEN);
+    gfx->fillRect(20, 48, barFill, 8, barColor);
   }
-  gfx->drawRect(x, y, w, h, barColor);  // Border
+  gfx->drawRect(20, 48, 200, 8, COL_DIM);
 }
 
 // ══════════════════════════════════════════════════════════
@@ -27,64 +32,65 @@ static void drawProgressBar(int x, int y, int w, int h,
 // ══════════════════════════════════════════════════════════
 
 void uiPlayRhythmDraw() {
-  // Full screen redraw
-  gfx->fillScreen(((uint16_t)0x1013));  // COL_BG_PLAY (dark pink)
+  drawViewHeader("RHYTHM TAP", COL_CYAN, "A=TAP  B=BACK");
 
-  // ─── HEADER ───────────────────────────────────────────────
-  gfx->fillRect(0, 0, SCREEN_W, 24, ((uint16_t)0x1082));  // COL_DARK
-  gfx->setTextColor(((uint16_t)0x07FF), ((uint16_t)0x1082));  // COL_CYAN text
-  gfx->setFont(&FreeSans9pt7b);
-  gfx->setCursor(8, 18);
-  gfx->println("RHYTHM TAP");
+  // ─── BEAT LABEL ───────────────────────────────────────
+  gfx->setTextColor(COL_DIM); gfx->setTextSize(1);
+  gfx->setCursor(20, 42);
+  gfx->print("BEAT:");
 
-  // ─── STATS BAR ────────────────────────────────────────────
-  gfx->setFont(&FreeSans9pt7b);
-  gfx->setTextColor(((uint16_t)0xFFFF), ((uint16_t)0x1013));  // White on dark
+  // ─── BEAT METER (bar) ─────────────────────────────────
+  drawBeatMeter();
 
-  // Round indicator (top right)
-  gfx->setCursor(SCREEN_W - 70, 18);
-  gfx->printf("R%d/3", rhythmGame.round + 1);
+  // ─── ROUND / BEAT COUNTERS ────────────────────────────
+  gfx->setTextColor(COL_DIM); gfx->setTextSize(1);
+  gfx->setCursor(8, 68);
+  gfx->printf("Round %d/3", rhythmGame.round + 1);
+  gfx->setCursor(140, 68);
+  gfx->printf("Beat %d/10", min(rhythmGame.beatIndex + 1, 10));
 
-  // Beat counter (centered)
-  gfx->setCursor(SCREEN_W / 2 - 20, 18);
-  gfx->printf("B %d/10", rhythmGame.beatIndex + 1);
+  // ─── SCORE ────────────────────────────────────────────
+  gfx->setTextColor(COL_DIM); gfx->setTextSize(1);
+  gfx->setCursor(8, 88);  gfx->print("SCORE");
+  gfx->setCursor(8, 98);  gfx->print("BEST");
 
-  // ─── BEAT METER (large, centered) ─────────────────────────
-  gfx->fillRect(0, 40, SCREEN_W, 20, ((uint16_t)0x0811));  // Game area bg
-  drawProgressBar(20, 48, SCREEN_W - 40, 10, 0, ((uint16_t)0x07FF), ((uint16_t)0x0811));
+  gfx->setTextColor(COL_YELLOW); gfx->setTextSize(2);
+  char sbuf[8];
+  sprintf(sbuf, "%d", rhythmGame.totalScore);
+  gfx->setCursor(70, 88); gfx->print(sbuf);
 
-  // ─── SCORE DISPLAY ────────────────────────────────────────
-  gfx->setFont(&FreeSans12pt7b);
-  gfx->setTextColor(((uint16_t)0xFF60), ((uint16_t)0x1013));  // COL_YELLOW
-  gfx->setCursor(SCREEN_W / 2 - 30, 100);
-  gfx->printf("SCORE\n%d", rhythmGame.totalScore);
+  gfx->setTextColor(COL_DIM); gfx->setTextSize(2);
+  sprintf(sbuf, "%d", rhythmGame.bestScore);
+  gfx->setCursor(70, 104); gfx->print(sbuf);
 
-  // ─── INSTRUCTION TEXT ─────────────────────────────────────
-  gfx->setFont(&FreeSans9pt7b);
-  gfx->setTextColor(((uint16_t)0xFFFF), ((uint16_t)0x1013));
+  // ─── STATS ────────────────────────────────────────────
+  gfx->setTextColor(COL_GREEN); gfx->setTextSize(1);
   gfx->setCursor(8, 130);
-  gfx->println("[A] TAP TO BEAT!");
+  gfx->printf("P:%d", rhythmGame.perfectCount);
+  gfx->setTextColor(COL_YELLOW);
+  gfx->setCursor(60, 130);
+  gfx->printf("G:%d", rhythmGame.goodCount);
+  gfx->setTextColor(COL_PINK);
+  gfx->setCursor(110, 130);
+  gfx->printf("M:%d", rhythmGame.missCount);
 
-  // ─── STATS ────────────────────────────────────────────────
-  gfx->setFont(&FreeSans7pt7b);
-  gfx->setCursor(8, 160);
-  gfx->printf("Perfect: %d   Good: %d   Miss: %d",
-             rhythmGame.perfectCount, rhythmGame.goodCount, rhythmGame.missCount);
-
-  // ─── DIFFICULTY HINT ──────────────────────────────────────
-  gfx->setCursor(8, 180);
+  // ─── DIFFICULTY ───────────────────────────────────────
+  gfx->setTextColor(COL_DIM); gfx->setTextSize(1);
+  gfx->setCursor(8, 148);
   const char* diffStr = (rhythmGame.beatInterval == 1000) ? "EASY" :
-                        (rhythmGame.beatInterval == 800) ? "MEDIUM" : "HARD";
-  gfx->printf("Difficulty: %s (%dms/beat)", diffStr, rhythmGame.beatInterval);
+                        (rhythmGame.beatInterval == 800)  ? "MEDIUM" : "HARD";
+  gfx->printf("Speed: %s (%ldms)", diffStr, (long)rhythmGame.beatInterval);
 
-  // ─── BEST SCORE ───────────────────────────────────────────
-  gfx->setCursor(8, 200);
-  gfx->printf("Best: %d", rhythmGame.bestScore);
+  // Separator
+  gfx->drawFastHLine(0, 162, SCREEN_W, COL_DIM);
 
-  // Initial beat meter state
-  uint32_t elapsed = millis() - rhythmGame.roundStartTime;
-  int beatPercent = (elapsed % rhythmGame.beatInterval) * 100 / rhythmGame.beatInterval;
-  drawProgressBar(20, 48, SCREEN_W - 40, 10, beatPercent, ((uint16_t)0x07FF), ((uint16_t)0x0811));
+  // ─── FEEDBACK AREA (blank initially) ──────────────────
+  gfx->setTextColor(COL_DIM); gfx->setTextSize(1);
+  gfx->setCursor(8, 175);
+  gfx->print("Tap in sync with the bar!");
+
+  gfx->setCursor(8, 260);
+  gfx->print("B = BACK TO MAIN");
 }
 
 // ══════════════════════════════════════════════════════════
@@ -92,54 +98,54 @@ void uiPlayRhythmDraw() {
 // ══════════════════════════════════════════════════════════
 
 void uiPlayRhythmAnimate() {
-  // Called every 600ms tick during gameplay
-  // Update beat meter progress and feedback display
+  // ─── BEAT METER ───────────────────────────────────────
+  drawBeatMeter();
 
-  // ─── UPDATE BEAT METER ─────────────────────────────────────
-  if (rhythmGame.roundStartTime > 0) {
-    uint32_t elapsed = millis() - rhythmGame.roundStartTime;
-    int beatPercent = (elapsed % rhythmGame.beatInterval) * 100 / rhythmGame.beatInterval;
+  // ─── SCORE ────────────────────────────────────────────
+  gfx->fillRect(70, 86, 100, 14, COL_BG_PLAY);
+  gfx->setTextColor(COL_YELLOW); gfx->setTextSize(2);
+  char sbuf[8];
+  sprintf(sbuf, "%d", rhythmGame.totalScore);
+  gfx->setCursor(70, 98); gfx->print(sbuf);
 
-    // Redraw beat meter area
-    gfx->fillRect(20, 48, SCREEN_W - 40, 10, ((uint16_t)0x0811));
-    drawProgressBar(20, 48, SCREEN_W - 40, 10, beatPercent, ((uint16_t)0x07FF), ((uint16_t)0x0811));
-  }
+  // ─── COUNTERS ─────────────────────────────────────────
+  gfx->fillRect(8, 125, SCREEN_W - 16, 10, COL_BG_PLAY);
+  gfx->setTextColor(COL_GREEN); gfx->setTextSize(1);
+  gfx->setCursor(8, 133);
+  gfx->printf("P:%d", rhythmGame.perfectCount);
+  gfx->setTextColor(COL_YELLOW);
+  gfx->setCursor(60, 133);
+  gfx->printf("G:%d", rhythmGame.goodCount);
+  gfx->setTextColor(COL_PINK);
+  gfx->setCursor(110, 133);
+  gfx->printf("M:%d", rhythmGame.missCount);
 
-  // ─── UPDATE SCORE ─────────────────────────────────────────
-  gfx->fillRect(SCREEN_W / 2 - 40, 85, 80, 25, ((uint16_t)0x1013));
-  gfx->setFont(&FreeSans12pt7b);
-  gfx->setTextColor(((uint16_t)0xFF60), ((uint16_t)0x1013));
-  gfx->setCursor(SCREEN_W / 2 - 25, 100);
-  gfx->printf("%d", rhythmGame.totalScore);
+  // ─── BEAT/ROUND COUNTERS ──────────────────────────────
+  gfx->fillRect(8, 62, SCREEN_W - 16, 10, COL_BG_PLAY);
+  gfx->setTextColor(COL_DIM); gfx->setTextSize(1);
+  gfx->setCursor(8, 70);
+  gfx->printf("Round %d/3", rhythmGame.round + 1);
+  gfx->setCursor(140, 70);
+  gfx->printf("Beat %d/10", min(rhythmGame.beatIndex + 1, 10));
 
-  // ─── UPDATE BEAT COUNTER ──────────────────────────────────
-  gfx->fillRect(SCREEN_W / 2 - 10, 8, 40, 16, ((uint16_t)0x1082));
-  gfx->setFont(&FreeSans9pt7b);
-  gfx->setTextColor(((uint16_t)0x07FF), ((uint16_t)0x1082));
-  gfx->setCursor(SCREEN_W / 2 - 8, 18);
-  gfx->printf("B%d/10", rhythmGame.beatIndex + 1);
-
-  // ─── FEEDBACK ANIMATION ───────────────────────────────────
+  // ─── FEEDBACK FLASH ───────────────────────────────────
   if (rhythmGame.feedbackAge > 0) {
-    // Draw feedback message with fade
-    uint8_t alpha = (rhythmGame.feedbackAge * 255) / 10;  // Fade out
-    gfx->setFont(&FreeSans12pt7b);
-
-    // Background for feedback
-    gfx->fillRect(40, 115, SCREEN_W - 80, 30, rhythmGame.feedbackColor);
-    gfx->setTextColor(((uint16_t)0xFFFF), rhythmGame.feedbackColor);
-    gfx->setCursor(SCREEN_W / 2 - 40, 140);
-    gfx->println(rhythmGame.feedbackMsg);
+    gfx->fillRect(8, 168, SCREEN_W - 16, 20, rhythmGame.feedbackColor);
+    gfx->setTextColor(COL_WHITE); gfx->setTextSize(2);
+    gfx->setCursor(50, 183);
+    gfx->print(rhythmGame.feedbackMsg);
   } else {
-    // Clear feedback area
-    gfx->fillRect(40, 115, SCREEN_W - 80, 30, ((uint16_t)0x1013));
+    gfx->fillRect(8, 168, SCREEN_W - 16, 20, COL_BG_PLAY);
   }
 
-  // ─── UPDATE STATS ─────────────────────────────────────────
-  gfx->fillRect(8, 155, SCREEN_W - 16, 16, ((uint16_t)0x1013));
-  gfx->setFont(&FreeSans7pt7b);
-  gfx->setTextColor(((uint16_t)0xFFFF), ((uint16_t)0x1013));
-  gfx->setCursor(8, 165);
-  gfx->printf("Perfect: %d   Good: %d   Miss: %d",
-             rhythmGame.perfectCount, rhythmGame.goodCount, rhythmGame.missCount);
+  // ─── GAME OVER OVERLAY ────────────────────────────────
+  if (rhythmGame.roundComplete) {
+    gfx->fillRect(20, 200, SCREEN_W - 40, 40, COL_DIM);
+    gfx->setTextColor(COL_YELLOW); gfx->setTextSize(1);
+    gfx->setCursor(40, 214);
+    gfx->print("GAME OVER!");
+    gfx->setCursor(30, 228);
+    char buf[24]; sprintf(buf, "Final: %d  Best: %d", rhythmGame.totalScore, rhythmGame.bestScore);
+    gfx->print(buf);
+  }
 }

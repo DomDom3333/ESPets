@@ -80,7 +80,7 @@ struct RhythmGameState {
   int      goodCount       = 0;
   int      missCount       = 0;
   int      lastAccuracy    = 0;
-  char     feedbackMsg[20] = "";
+  char     feedbackMsg[20] = {};
   uint8_t  feedbackAge     = 0;
   uint16_t feedbackColor   = 0;
   uint32_t lastProcessedClick = 0;

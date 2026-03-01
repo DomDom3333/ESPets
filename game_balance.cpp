@@ -246,7 +246,7 @@ void balanceGameCheckWinCondition() {
       balanceGame->level = 1;  // Loop back
     }
 
-    int nextDifficulty = min(BALANCE_HARD, balanceGame->difficulty + 1);
+    int nextDifficulty = min((int)BALANCE_HARD, balanceGame->difficulty + 1);
     if (balanceGame->level == 1 && balanceGame->difficulty == BALANCE_HARD) {
       nextDifficulty = BALANCE_EASY;  // Reset difficulty on cycle
     }
