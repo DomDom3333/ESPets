@@ -176,14 +176,17 @@ void balanceGameUpdate() {
 
   // ─── PHYSICS ──────────────────────────────────────────
   // Apply dead zone first (hysteresis prevents jitter at boundaries)
-  float accelX = (fabs(imuData.accelX) < TILT_DEADZONE) ? 0.0f : imuData.accelX;
-  float accelY = (fabs(imuData.accelY) < TILT_DEADZONE) ? 0.0f : imuData.accelY;
+  // NOTE: Axes are swapped and inverted to match PELLETINO mapping
+  //   - Pitch (accelX) controls vertical (Y)
+  //   - Roll (accelY) controls horizontal (X)
+  float accelX = (fabs(imuData.accelY) < TILT_DEADZONE) ? 0.0f : -imuData.accelY;  // Roll → X (inverted)
+  float accelY = (fabs(imuData.accelX) < TILT_DEADZONE) ? 0.0f : imuData.accelX;   // Pitch → Y
 
   // DEBUG: Log IMU data every second
   static uint32_t lastDebugTime = 0;
   if (millis() - lastDebugTime > 1000) {
     lastDebugTime = millis();
-    Serial.printf("[BALANCE] RawAX=%.2f RawAY=%.2f DZoneAX=%.2f DZoneAY=%.2f VX=%.2f VY=%.2f BallXY=(%.1f,%.1f)\n",
+    Serial.printf("[BALANCE] RawAX=%.2f RawAY=%.2f MappedX=%.2f MappedY=%.2f VX=%.2f VY=%.2f BallXY=(%.1f,%.1f)\n",
                   imuData.accelX, imuData.accelY, accelX, accelY,
                   balanceGame->ballVelX, balanceGame->ballVelY,
                   balanceGame->ballX, balanceGame->ballY);
