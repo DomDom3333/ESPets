@@ -147,7 +147,7 @@ void balanceGameStartLevel(int difficulty) {
 // ══════════════════════════════════════════════════════════
 
 void balanceGameUpdate() {
-  // Called every frame (~10-20ms)
+  // Called every frame (~10-20ms, but IMU only updated every 80ms)
 
   // First time? Log status
   static bool firstCall = true;
@@ -158,6 +158,17 @@ void balanceGameUpdate() {
     } else {
       Serial.println("[BALANCE] ✓ IMU ready, starting game");
     }
+  }
+
+  // DEBUG: Track FPS
+  static uint32_t fpsStartTime = 0;
+  static int fpsFrameCount = 0;
+  fpsFrameCount++;
+  if (fpsStartTime == 0) fpsStartTime = millis();
+  if (millis() - fpsStartTime >= 1000) {
+    Serial.printf("[BALANCE] FPS: %d frames/sec  (IMU: 12.5Hz every 80ms)\n", fpsFrameCount);
+    fpsStartTime = millis();
+    fpsFrameCount = 0;
   }
 
   if (!imuIsCalibrated() || balanceGame->levelComplete || balanceGame->levelFailed) {
@@ -184,12 +195,21 @@ void balanceGameUpdate() {
 
   // DEBUG: Log IMU data every second
   static uint32_t lastDebugTime = 0;
+  static float avgAccelX = 0, avgAccelY = 0;
+  static int debugSamples = 0;
+  avgAccelX = (avgAccelX * debugSamples + imuData.accelX) / (debugSamples + 1);
+  avgAccelY = (avgAccelY * debugSamples + imuData.accelY) / (debugSamples + 1);
+  debugSamples++;
+
   if (millis() - lastDebugTime > 1000) {
     lastDebugTime = millis();
-    Serial.printf("[BALANCE] RawAX=%.2f RawAY=%.2f MappedX=%.2f MappedY=%.2f VX=%.2f VY=%.2f BallXY=(%.1f,%.1f)\n",
-                  imuData.accelX, imuData.accelY, accelX, accelY,
+    Serial.printf("[BALANCE] AVG_Raw: AX=%.2f AY=%.2f | Now: AX=%.2f AY=%.2f -> Mapped: X=%.2f Y=%.2f | V: X=%.2f Y=%.2f | Ball: (%.1f,%.1f)\n",
+                  avgAccelX, avgAccelY, imuData.accelX, imuData.accelY, accelX, accelY,
                   balanceGame->ballVelX, balanceGame->ballVelY,
                   balanceGame->ballX, balanceGame->ballY);
+    debugSamples = 0;
+    avgAccelX = 0;
+    avgAccelY = 0;
   }
 
   // Map accelerometer to velocity (tuned to PELLETINO sensitivity)
