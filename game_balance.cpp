@@ -9,10 +9,11 @@
 // Global game state (allocate dynamically)
 BalanceGameState* balanceGame = nullptr;
 
-// Physics constants
-#define TILT_SCALE    5.0f    // How much tilt affects velocity (increased for responsiveness)
-#define DAMPING       0.88f   // Velocity damping per frame (0-1), slightly increased for snappier response
-#define MAX_VELOCITY  6.0f    // Max speed in pixels/frame (doubled for faster gameplay)
+// Physics constants (tuned from PELLETINO project)
+#define TILT_DEADZONE 0.3f    // Ignore tilts < 0.3g to prevent jitter (hysteresis)
+#define TILT_SCALE    0.6f    // Much lower sensitivity - PELLETINO divides by 128, we multiply by 0.6
+#define DAMPING       0.92f   // Higher damping for smoother response
+#define MAX_VELOCITY  3.0f    // Lower max velocity allows fine control without hitting limits
 #define BALL_SIZE     4       // Radius in game units
 #define CELL_SIZE     10      // Size of maze cells in game units
 
@@ -173,24 +174,28 @@ void balanceGameUpdate() {
   imuApplyLowPassFilter(imuData, 0.9f);
   balanceGame->lastIMU = imuData;
 
+  // ─── PHYSICS ──────────────────────────────────────────
+  // Apply dead zone first (hysteresis prevents jitter at boundaries)
+  float accelX = (fabs(imuData.accelX) < TILT_DEADZONE) ? 0.0f : imuData.accelX;
+  float accelY = (fabs(imuData.accelY) < TILT_DEADZONE) ? 0.0f : imuData.accelY;
+
   // DEBUG: Log IMU data every second
   static uint32_t lastDebugTime = 0;
   if (millis() - lastDebugTime > 1000) {
     lastDebugTime = millis();
-    Serial.printf("[BALANCE] AX=%.2f AY=%.2f VX=%.2f VY=%.2f BallXY=(%.1f,%.1f)\n",
-                  imuData.accelX, imuData.accelY,
+    Serial.printf("[BALANCE] RawAX=%.2f RawAY=%.2f DZoneAX=%.2f DZoneAY=%.2f VX=%.2f VY=%.2f BallXY=(%.1f,%.1f)\n",
+                  imuData.accelX, imuData.accelY, accelX, accelY,
                   balanceGame->ballVelX, balanceGame->ballVelY,
                   balanceGame->ballX, balanceGame->ballY);
   }
 
-  // ─── PHYSICS ──────────────────────────────────────────
-  // Map accelerometer to velocity
+  // Map accelerometer to velocity (tuned to PELLETINO sensitivity)
   // ax, ay in m/s² (calibrated with gravity removed from Z)
-  // At ±8g range, ±9.8 m/s² represents maximum tilt
+  // At ±2g range, ±9.8 m/s² represents maximum tilt
   balanceGame->ballVelX = balanceGame->ballVelX * DAMPING +
-                          (imuData.accelX / 9.8f) * TILT_SCALE;
+                          (accelX / 9.8f) * TILT_SCALE;
   balanceGame->ballVelY = balanceGame->ballVelY * DAMPING +
-                          (imuData.accelY / 9.8f) * TILT_SCALE;
+                          (accelY / 9.8f) * TILT_SCALE;
 
   // Clamp velocity
   if (balanceGame->ballVelX > MAX_VELOCITY) balanceGame->ballVelX = MAX_VELOCITY;
