@@ -16,6 +16,8 @@ View           currentView  = VIEW_MAIN;
 View           previousView = VIEW_MAIN;
 NotifState     notif;
 StarGameState  starGame;
+// Note: RhythmGameState rhythmGame is defined in game_rhythm.cpp
+// Note: BalanceGameState balanceGame is defined in game_balance.cpp
 
 // ── Animation ─────────────────────────────────────────────
 int      animFrame     = 0;

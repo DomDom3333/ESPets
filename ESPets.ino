@@ -39,6 +39,9 @@
 #include "pet.h"
 #include "creature_gen.h"
 #include "game_star.h"
+#include "game_rhythm.h"
+#include "game_balance.h"
+#include "mpu6050.h"
 #include "nav.h"
 #include "ui_common.h"
 #include "ui_main.h"
@@ -72,6 +75,16 @@ void setup() {
 
   gfx->fillScreen(COL_BG_MAIN);
 
+  // ── IMU (MPU6050) ──────────────────────────────────────
+  if (imuInit()) {
+    // Calibration: device must be stationary for ~1 second
+    Serial.println("Keep device stationary for calibration (1 second)...");
+    delay(500);
+    imuCalibrate(200);  // 200 samples @ 5ms = ~1 second
+  } else {
+    Serial.println("[WARN] MPU6050 not detected - tilt games disabled");
+  }
+
   // ── Creature generation (from ChipId) ──────────────────
   uint64_t mac = ESP.getEfuseMac();
   uint32_t chipSeed = (uint32_t)(mac ^ (mac >> 32));
@@ -87,6 +100,8 @@ void setup() {
   // ── Init game & state ─────────────────────────────────
   randomSeed((uint32_t)esp_random());
   starGameReset();
+  rhythmGameInit();
+  balanceGameInit();
   viewDirty = true;
 
   Serial.println("=== Boot complete ===");
@@ -100,6 +115,22 @@ void loop() {
 
   // ── Input ─────────────────────────────────────────────
   inputUpdate();
+
+  // ── IMU polling (every 80ms for smooth filtered data) ──
+  static uint32_t lastIMUPoll = 0;
+  if (imuIsCalibrated() && now - lastIMUPoll >= 80) {
+    lastIMUPoll = now;
+    // Raw IMU reading happens here; game logic will read via imuRead()
+    IMUData dummy;
+    imuRead(dummy);
+  }
+
+  // ── Game updates ───────────────────────────────────────
+  if (currentView == VIEW_PLAY_RHYTHM) {
+    rhythmGameUpdate();
+  } else if (currentView == VIEW_PLAY_BALANCE) {
+    balanceGameUpdate();
+  }
 
   // ── Full redraw (view switch or forced) ───────────────
   if (viewDirty) {

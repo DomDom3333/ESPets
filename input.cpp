@@ -14,8 +14,12 @@
 //  construction, which runs before setup().)
 static OneButton* btn = nullptr;
 
+// ── Click timing (for rhythm game) ───────────────────────
+uint32_t lastClickTime = 0;  // Timestamp of most recent click (exported for games)
+
 // ── Callbacks ────────────────────────────────────────────
 static void onClick() {
+  lastClickTime = millis();  // Record click timestamp for games
   Serial.println("DEBUG: Single click detected");
   navOnShortPressA();
 }

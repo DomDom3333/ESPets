@@ -18,7 +18,9 @@
 enum View {
   VIEW_MAIN,
   VIEW_FEED,
-  VIEW_PLAY,
+  VIEW_PLAY,           // Star catch game (classic)
+  VIEW_PLAY_RHYTHM,    // Rhythm Tap game (new)
+  VIEW_PLAY_BALANCE,   // Tilt Maze game (new)
   VIEW_STATUS,
   VIEW_SLEEP
   // Future: VIEW_BLE_PAIR, VIEW_TRADE, VIEW_EVOLVE ...
@@ -64,6 +66,31 @@ struct StarGameState {
   bool     visible    = false;
 };
 
+// ── Rhythm Tap game state ──────────────────────────────────
+struct RhythmGameState {
+  int      round           = 0;
+  int      beatIndex       = 0;
+  bool     roundComplete   = false;
+  uint32_t roundStartTime  = 0;
+  uint32_t beatInterval    = 1000;
+  int      roundScore      = 0;
+  int      totalScore      = 0;
+  int      bestScore       = 0;
+  int      perfectCount    = 0;
+  int      goodCount       = 0;
+  int      missCount       = 0;
+  int      lastAccuracy    = 0;
+  char     feedbackMsg[20] = "";
+  uint8_t  feedbackAge     = 0;
+  uint16_t feedbackColor   = 0;
+  uint32_t lastProcessedClick = 0;
+  bool     currentBeatProcessed = false;
+};
+
+// ── Balance game state (Tilt Maze) ─────────────────────────
+// Forward declaration; full definition in game_balance.h
+struct BalanceGameState;  // Defined in game_balance.h
+
 // ══════════════════════════════════════════════════════════
 //  EXTERN DECLARATIONS — defined in globals.cpp
 // ══════════════════════════════════════════════════════════
@@ -78,6 +105,8 @@ extern View           currentView;
 extern View           previousView;
 extern NotifState     notif;
 extern StarGameState  starGame;
+extern RhythmGameState rhythmGame;
+extern BalanceGameState* balanceGame;  // Pointer since struct is forward-declared
 
 // Animation
 extern int      animFrame;

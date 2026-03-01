@@ -18,3 +18,7 @@ void inputInit();
 
 // Call every loop() iteration
 void inputUpdate();
+
+// ── Click timing (exported for games like Rhythm Tap) ────
+// Updated in onClick() handler; games read this to detect taps
+extern uint32_t lastClickTime;
