@@ -5,6 +5,7 @@
  */
 #include "ui_play_rhythm.h"
 #include "game_rhythm.h"
+#include "nav.h"
 #include "ui_common.h"
 
 // ══════════════════════════════════════════════════════════
