@@ -9,16 +9,16 @@
 // Global game state (allocate dynamically)
 BalanceGameState* balanceGame = nullptr;
 
-// Physics constants (tuned from PELLETINO project)
+// Physics constants
 #define TILT_DEADZONE 0.3f    // Ignore tilts < 0.3g to prevent jitter (hysteresis)
-#define TILT_SCALE    0.6f    // Much lower sensitivity - PELLETINO divides by 128, we multiply by 0.6
+#define TILT_SCALE    0.6f    // Much lower sensitivity
 #define DAMPING       0.92f   // Higher damping for smoother response
 #define MAX_VELOCITY  3.0f    // Lower max velocity allows fine control without hitting limits
 #define BALL_SIZE     4       // Radius in game units
 #define CELL_SIZE     10      // Size of maze cells in game units
 
 // Per-level parameters (index 0 = level 1)
-static const int LEVEL_WALL_COUNTS[5] = { 6, 10, 16, 22, 30 };
+static const int LEVEL_WALL_COUNTS[5] = { 10, 15, 20, 30, 40 };
 static const int LEVEL_TIME_LIMITS[5] = { 35000, 30000, 27000, 24000, 20000 };
 static const int WALL_DRAW_W[5]       = { 20, 16, 12,  8,  5 };
 static const int WALL_DRAW_H[5]       = { 18, 14, 10,  7,  5 };
@@ -176,7 +176,7 @@ void balanceGameUpdate() {
 
   // ─── PHYSICS ──────────────────────────────────────────
   // Apply dead zone first (hysteresis prevents jitter at boundaries)
-  // NOTE: Axes are swapped and inverted to match PELLETINO mapping
+  // NOTE: Axes are swapped and inverted
   //   - Pitch (accelX) controls vertical (Y)
   //   - Roll (accelY) controls horizontal (X)
   float accelX = (fabs(imuData.accelY) < TILT_DEADZONE) ? 0.0f : -imuData.accelY;  // Roll → X (inverted)
@@ -201,7 +201,7 @@ void balanceGameUpdate() {
     avgAccelY = 0;
   }
 
-  // Map accelerometer to velocity (tuned to PELLETINO sensitivity)
+  // Map accelerometer to velocity
   // ax, ay in m/s² (calibrated with gravity removed from Z)
   // At ±2g range, ±9.8 m/s² represents maximum tilt
   balanceGame->ballVelX = balanceGame->ballVelX * DAMPING +
