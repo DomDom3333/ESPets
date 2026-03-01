@@ -113,7 +113,7 @@ bool imuInit() {
 }
 
 bool imuCalibrate(uint16_t sampleCount) {
-  if (!imuReadReg(MPU6050_REG_WHO_AM_I) == 0x68) {
+  if (imuReadReg(MPU6050_REG_WHO_AM_I) != 0x68) {
     Serial.println("[MPU6050] Calibration failed: device not responding");
     return false;
   }

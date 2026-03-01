@@ -76,13 +76,19 @@ void setup() {
   gfx->fillScreen(COL_BG_MAIN);
 
   // ── IMU (MPU6050) ──────────────────────────────────────
+  Serial.println("\n[STARTUP] Initializing MPU6050 IMU...");
   if (imuInit()) {
     // Calibration: device must be stationary for ~1 second
-    Serial.println("Keep device stationary for calibration (1 second)...");
+    Serial.println("[STARTUP] Keep device LEVEL and STILL for calibration (1 second)...");
     delay(500);
-    imuCalibrate(200);  // 200 samples @ 5ms = ~1 second
+    if (imuCalibrate(200)) {  // 200 samples @ 5ms = ~1 second
+      Serial.println("[STARTUP] ✓ IMU ready!");
+    } else {
+      Serial.println("[STARTUP] ✗ IMU calibration failed");
+    }
   } else {
-    Serial.println("[WARN] MPU6050 not detected - tilt games disabled");
+    Serial.println("[STARTUP] ✗ MPU6050 NOT FOUND on I2C - check wiring");
+    Serial.println("[STARTUP] Tilt games will not work");
   }
 
   // ── Creature generation (from ChipId) ──────────────────

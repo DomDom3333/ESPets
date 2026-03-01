@@ -147,6 +147,18 @@ void balanceGameStartLevel(int difficulty) {
 
 void balanceGameUpdate() {
   // Called every frame (~10-20ms)
+
+  // First time? Log status
+  static bool firstCall = true;
+  if (firstCall) {
+    firstCall = false;
+    if (!imuIsCalibrated()) {
+      Serial.println("[BALANCE] ✗ IMU NOT CALIBRATED - ball will not move!");
+    } else {
+      Serial.println("[BALANCE] ✓ IMU ready, starting game");
+    }
+  }
+
   if (!imuIsCalibrated() || balanceGame->levelComplete || balanceGame->levelFailed) {
     return;
   }
