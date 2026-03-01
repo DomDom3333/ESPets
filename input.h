@@ -1,8 +1,13 @@
 /*
- * input.h — Button input handling
- * ─────────────────────────────────
- * Polls hardware buttons, debounces, detects short/long press.
- * Fires callbacks defined in nav.cpp.
+ * input.h — Single-button input via OneButton library
+ * ─────────────────────────────────────────────────────
+ * All navigation through one button:
+ *   single click  → cycle / next / catch   (navOnShortPressA)
+ *   double click  → select / action / back  (navOnShortPressB)
+ *   long press    → toggle sleep             (navOnLongPressA)
+ *
+ * Requires: OneButton library (by Matthias Hertel)
+ *           Install via Arduino Library Manager.
  */
 #pragma once
 
@@ -12,4 +17,4 @@
 void inputInit();
 
 // Call every loop() iteration
-void inputUpdate(uint32_t now);
+void inputUpdate();

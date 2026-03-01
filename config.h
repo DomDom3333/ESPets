@@ -16,9 +16,12 @@
 #define PIN_RST    4
 #define PIN_BL     6
 
-// ── Buttons (active LOW, internal pull-up) ────────────────
-#define BTN_A      0   // BOOT — cycle / next / catch
-#define BTN_B      9   // PWR  — select / action
+// ── Button (active LOW, internal pull-up) ─────────────────
+// All actions via one button using the OneButton library:
+//   single click  → cycle / next / catch
+//   double click  → select / action / back
+//   long press    → toggle sleep
+#define BTN_PIN    9   // BOOT button (GPIO 9 on ESP32-C6)
 
 // ── Screen geometry ───────────────────────────────────────
 #define SCREEN_W   240
@@ -28,8 +31,8 @@
 #define ANIM_INTERVAL    600    // pet bob / blink cycle
 #define DECAY_INTERVAL   10000  // stat decay tick
 #define NOTIF_DURATION   2500   // notification display time
-#define LONG_PRESS_MS    800    // hold-A threshold
-#define DEBOUNCE_MS      50     // button debounce
+// Button timing is handled by the OneButton library (defaults:
+// debounce 50 ms, click 400 ms, long-press 800 ms).
 
 // ── RGB565 colour palette ─────────────────────────────────
 // View backgrounds
