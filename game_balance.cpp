@@ -10,9 +10,9 @@
 BalanceGameState* balanceGame = nullptr;
 
 // Physics constants
-#define TILT_SCALE    2.5f    // How much tilt affects velocity
-#define DAMPING       0.85f   // Velocity damping per frame (0-1)
-#define MAX_VELOCITY  3.0f    // Max speed in pixels/frame
+#define TILT_SCALE    5.0f    // How much tilt affects velocity (increased for responsiveness)
+#define DAMPING       0.88f   // Velocity damping per frame (0-1), slightly increased for snappier response
+#define MAX_VELOCITY  6.0f    // Max speed in pixels/frame (doubled for faster gameplay)
 #define BALL_SIZE     4       // Radius in game units
 #define CELL_SIZE     10      // Size of maze cells in game units
 
@@ -157,13 +157,24 @@ void balanceGameUpdate() {
     return;  // IMU not ready
   }
 
-  // Apply low-pass filter
-  imuApplyLowPassFilter(imuData, 0.7f);
+  // Apply low-pass filter (use 0.9 for more responsiveness in games)
+  imuApplyLowPassFilter(imuData, 0.9f);
   balanceGame->lastIMU = imuData;
+
+  // DEBUG: Log IMU data every second
+  static uint32_t lastDebugTime = 0;
+  if (millis() - lastDebugTime > 1000) {
+    lastDebugTime = millis();
+    Serial.printf("[BALANCE] AX=%.2f AY=%.2f VX=%.2f VY=%.2f BallXY=(%.1f,%.1f)\n",
+                  imuData.accelX, imuData.accelY,
+                  balanceGame->ballVelX, balanceGame->ballVelY,
+                  balanceGame->ballX, balanceGame->ballY);
+  }
 
   // ─── PHYSICS ──────────────────────────────────────────
   // Map accelerometer to velocity
-  // ax, ay in m/s² (-9.8 to +9.8); convert to velocity
+  // ax, ay in m/s² (calibrated with gravity removed from Z)
+  // At ±8g range, ±9.8 m/s² represents maximum tilt
   balanceGame->ballVelX = balanceGame->ballVelX * DAMPING +
                           (imuData.accelX / 9.8f) * TILT_SCALE;
   balanceGame->ballVelY = balanceGame->ballVelY * DAMPING +
