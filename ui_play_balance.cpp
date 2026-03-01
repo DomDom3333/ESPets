@@ -62,7 +62,12 @@ void uiPlayBalanceDraw() {
   drawMazeFull();
 
   // ─── BALL ─────────────────────────────────────────────
-  drawBallAt(balanceGameGetBallX(), balanceGameGetBallY(), COL_BALL_C);
+  float ballX = balanceGameGetBallX();
+  float ballY = balanceGameGetBallY();
+  drawBallAt(ballX, ballY, COL_BALL_C);
+  prevBallX = ballX;
+  prevBallY = ballY;
+  Serial.printf("[BALANCE_UI] Full redraw: ball at (%.1f, %.1f)\n", ballX, ballY);
 
   // ─── INFO BAR ─────────────────────────────────────────
   gfx->drawFastHLine(0, GAME_Y + GAME_H + 4, SCREEN_W, COL_DIM);
@@ -109,8 +114,8 @@ void uiPlayBalanceAnimate() {
   if (prevBallX >= 0) {
     // Redraw the cell under the old ball position
     const uint8_t* maze = balanceGameGetMazePattern();
-    int cx = (int)(prevBallX * 10 / 100);
-    int cy = (int)(prevBallY *  8 / 80);
+    int cx = (int)(prevBallX * 10 / 100.0f);  // Game X (0-100) → cell col (0-10)
+    int cy = (int)(prevBallY / 10.0f);         // Game Y (0-80, cell_size=10) → cell row (0-8)
     cx = constrain(cx, 0, 9);
     cy = constrain(cy, 0, 7);
     uint8_t cell = maze[cy * 10 + cx];
