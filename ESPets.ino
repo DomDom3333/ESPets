@@ -54,6 +54,13 @@ void setup() {
   delay(500);
   Serial.println("\n\n=== ESPets Tamagotchi v6 ===");
 
+  // ── Sensor power enable ───────────────────────────────
+  // GPIO15 (BAT_EN) must be HIGH to power the I2C sensor rail
+  // (QMI8658 IMU, PCF85063 RTC, ES8311 audio are all on this rail)
+  pinMode(PIN_SENSOR_PWR, OUTPUT);
+  digitalWrite(PIN_SENSOR_PWR, HIGH);
+  delay(20);  // Let sensor rail stabilize
+
   // ── Backlight ─────────────────────────────────────────
   pinMode(PIN_BL, OUTPUT);
   digitalWrite(PIN_BL, HIGH);
@@ -75,8 +82,8 @@ void setup() {
 
   gfx->fillScreen(COL_BG_MAIN);
 
-  // ── IMU (MPU6050) ──────────────────────────────────────
-  Serial.println("\n[STARTUP] Initializing MPU6050 IMU...");
+  // ── IMU (QMI8658) ─────────────────────────────────────
+  Serial.println("\n[STARTUP] Initializing QMI8658 IMU (SDA=GPIO8, SCL=GPIO7)...");
   if (imuInit()) {
     // Calibration: device must be stationary for ~1 second
     Serial.println("[STARTUP] Keep device LEVEL and STILL for calibration (1 second)...");
@@ -87,7 +94,7 @@ void setup() {
       Serial.println("[STARTUP] ✗ IMU calibration failed");
     }
   } else {
-    Serial.println("[STARTUP] ✗ MPU6050 NOT FOUND on I2C - check wiring");
+    Serial.println("[STARTUP] ✗ QMI8658 NOT FOUND on I2C - check wiring");
     Serial.println("[STARTUP] Tilt games will not work");
   }
 

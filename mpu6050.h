@@ -12,8 +12,9 @@
 #include <Arduino.h>
 
 // I2C configuration
-#define I2C_SDA_PIN     7        // GPIO 7 = I2C SDA
-#define I2C_SCL_PIN     8        // GPIO 8 = I2C SCL
+// SDA=GPIO8, SCL=GPIO7 (confirmed from Waveshare ESP32-C6-LCD-1.69 hardware)
+#define I2C_SDA_PIN     8        // GPIO 8 = I2C SDA
+#define I2C_SCL_PIN     7        // GPIO 7 = I2C SCL
 #define I2C_FREQ        400000   // 400kHz fast mode
 #define QMI8658_ADDR    0x6B     // SA0=HIGH (default on Waveshare board)
 

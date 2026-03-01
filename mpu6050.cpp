@@ -23,21 +23,22 @@
 // WHO_AM_I expected value
 #define QMI8658_WHO_AM_I       0x05
 
-// CTRL2: Accel ±4g (bits[6:4]=001), ODR 250Hz (bits[3:0]=0110)
-#define QMI8658_CTRL2_VAL      0x16
+// CTRL2: Accel ±2g (bits[6:4]=000), ODR 250Hz (bits[3:0]=0101)
+// ±2g chosen for best tilt resolution (gravity = 1g max per axis)
+#define QMI8658_CTRL2_VAL      0x05
 
-// CTRL3: Gyro ±512dps (bits[6:4]=101), ODR 250Hz (bits[3:0]=0110)
-#define QMI8658_CTRL3_VAL      0x56
+// CTRL3: Gyro ±32dps (bits[6:4]=001), ODR 250Hz (bits[3:0]=0101)
+#define QMI8658_CTRL3_VAL      0x25
 
-// CTRL5: Low-pass filter enabled for accel (bit0) and gyro (bit4)
-#define QMI8658_CTRL5_VAL      0x11
+// CTRL5: Hardware LPF disabled (software filtering applied instead)
+#define QMI8658_CTRL5_VAL      0x00
 
 // CTRL7: Enable accel (bit0) + gyro (bit1)
 #define QMI8658_CTRL7_VAL      0x03
 
 // Sensitivity constants
-#define ACCEL_SENSITIVITY      8192.0f   // LSB/g at ±4g
-#define GYRO_SENSITIVITY       64.0f     // LSB/dps at ±512dps
+#define ACCEL_SENSITIVITY      16384.0f  // LSB/g at ±2g
+#define GYRO_SENSITIVITY       1024.0f   // LSB/dps at ±32dps
 
 // Static state
 static IMUData        lastIMUData;
@@ -153,29 +154,29 @@ bool imuInit() {
   Serial.printf("[IMU] QMI8658 found at 0x%02X (WHO_AM_I=0x%02X)\n", QMI8658_ADDR, whoami);
   deviceFound = true;
 
-  // Reset device first
-  imuWriteReg(QMI8658_REG_CTRL1, 0x60);  // soft reset
-  delay(15);
-
   // CTRL1: I2C mode, auto-increment register address
   if (!imuWriteReg(QMI8658_REG_CTRL1, 0x40)) {
     Serial.println("[IMU] Failed to configure CTRL1");
     return false;
   }
 
-  // CTRL2: Accelerometer ±4g, 250Hz ODR
+  // CTRL7: Disable all sensors before configuration
+  imuWriteReg(QMI8658_REG_CTRL7, 0x00);
+  delay(10);
+
+  // CTRL2: Accelerometer ±2g, 250Hz ODR
   if (!imuWriteReg(QMI8658_REG_CTRL2, QMI8658_CTRL2_VAL)) {
     Serial.println("[IMU] Failed to configure accelerometer");
     return false;
   }
 
-  // CTRL3: Gyroscope ±512dps, 250Hz ODR
+  // CTRL3: Gyroscope ±32dps, 250Hz ODR
   if (!imuWriteReg(QMI8658_REG_CTRL3, QMI8658_CTRL3_VAL)) {
     Serial.println("[IMU] Failed to configure gyroscope");
     return false;
   }
 
-  // CTRL5: Enable LPF for both accel and gyro
+  // CTRL5: Hardware LPF disabled (using software EMA filter)
   if (!imuWriteReg(QMI8658_REG_CTRL5, QMI8658_CTRL5_VAL)) {
     Serial.println("[IMU] Failed to configure CTRL5");
     return false;
@@ -187,8 +188,8 @@ bool imuInit() {
     return false;
   }
 
-  delay(50);  // Let sensors settle
-  Serial.println("[IMU] QMI8658 initialized: ±4g accel, ±512dps gyro, 250Hz");
+  delay(30);  // Wait for first sample (per QMI8658 datasheet)
+  Serial.println("[IMU] QMI8658 initialized: ±2g accel, ±32dps gyro, 250Hz");
   return true;
 }
 
@@ -221,7 +222,7 @@ bool imuCalibrate(uint16_t sampleCount) {
 
   imuCal.accelOffsetX = sumAX / valid;
   imuCal.accelOffsetY = sumAY / valid;
-  // Z should read +1g (8192 LSB) when flat; subtract expected gravity
+  // Z should read +1g when flat; subtract expected gravity (16384 LSB at ±2g)
   imuCal.accelOffsetZ = (sumAZ / valid) - (int16_t)ACCEL_SENSITIVITY;
 
   imuCal.gyroOffsetX = sumGX / valid;
