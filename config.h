@@ -21,7 +21,7 @@
 //   single click  → cycle / next / catch
 //   double click  → select / action / back
 //   long press    → toggle sleep
-#define BTN_PIN    0   // BOOT button
+#define BTN_PIN    9   // BOOT button (GPIO 9 on ESP32-C6)
 
 // ── Screen geometry ───────────────────────────────────────
 #define SCREEN_W   240
