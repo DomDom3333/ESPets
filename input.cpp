@@ -9,8 +9,10 @@
 #include "nav.h"
 #include <OneButton.h>
 
-// ── OneButton instance (active LOW, internal pull-up) ────
-static OneButton btn(BTN_PIN, true, true);
+// Pointer — constructed in inputInit() so GPIO is ready.
+// (ESP32 GPIO hardware is not initialised during static
+//  construction, which runs before setup().)
+static OneButton* btn = nullptr;
 
 // ── Callbacks ────────────────────────────────────────────
 static void onClick()      { navOnShortPressA(); }
@@ -18,15 +20,18 @@ static void onDoubleClick(){ navOnShortPressB(); }
 static void onLongPress()  { navOnLongPressA();  }
 
 void inputInit() {
-  btn.attachClick(onClick);
-  btn.attachDoubleClick(onDoubleClick);
-  btn.attachLongPressStart(onLongPress);
-
   // Drain any boot-press so it isn't misread as a click
+  pinMode(BTN_PIN, INPUT_PULLUP);
   delay(200);
   while (digitalRead(BTN_PIN) == LOW) delay(10);
+
+  // Now create OneButton — GPIO subsystem is ready
+  btn = new OneButton(BTN_PIN, true, true);
+  btn->attachClick(onClick);
+  btn->attachDoubleClick(onDoubleClick);
+  btn->attachLongPressStart(onLongPress);
 }
 
 void inputUpdate() {
-  btn.tick();
+  btn->tick();
 }
