@@ -45,6 +45,7 @@
 #include "nav.h"
 #include "ui_common.h"
 #include "ui_main.h"
+#include "ui_play_balance.h"
 
 // ==========================================================
 //  SETUP
@@ -141,20 +142,14 @@ void loop() {
   // ── Input ─────────────────────────────────────────────
   inputUpdate();
 
-  // ── IMU polling (every 80ms for smooth filtered data) ──
-  static uint32_t lastIMUPoll = 0;
-  if (imuIsCalibrated() && now - lastIMUPoll >= 80) {
-    lastIMUPoll = now;
-    // Raw IMU reading happens here; game logic will read via imuRead()
-    IMUData dummy;
-    imuRead(dummy);
-  }
-
   // ── Game updates ───────────────────────────────────────
   if (currentView == VIEW_PLAY_RHYTHM) {
     rhythmGameUpdate();
   } else if (currentView == VIEW_PLAY_BALANCE) {
-    balanceGameUpdate();
+    balanceGameUpdate();       // physics + IMU read (rate-limited inside)
+    if (!viewDirty) {
+      uiPlayBalanceAnimate();  // draw at 60 FPS, not the 600ms anim tick
+    }
   }
 
   // ── Full redraw (view switch or forced) ───────────────

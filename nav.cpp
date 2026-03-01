@@ -78,7 +78,7 @@ void navUpdateAnimation() {
     case VIEW_SLEEP:         uiSleepAnimate();         break;
     case VIEW_PLAY:          uiPlayAnimate();          break;
     case VIEW_PLAY_RHYTHM:   uiPlayRhythmAnimate();    break;
-    case VIEW_PLAY_BALANCE:  uiPlayBalanceAnimate();     break;
+    case VIEW_PLAY_BALANCE:  /* drawn at 60fps in main loop, not here */  break;
     default: break;
   }
 }

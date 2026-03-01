@@ -171,15 +171,20 @@ void balanceGameUpdate() {
     return;
   }
 
-  // Read IMU data
-  IMUData imuData;
-  if (!imuRead(imuData)) {
-    return;  // IMU not ready
+  // Read IMU data at 50Hz (every 20ms) — sensor doesn't update faster than this
+  // and hammering I2C every frame (60fps) just returns stale data with overhead
+  static uint32_t lastIMURead = 0;
+  static IMUData imuData;
+  uint32_t nowMs = millis();
+  if (nowMs - lastIMURead >= 20) {
+    lastIMURead = nowMs;
+    if (!imuRead(imuData)) {
+      return;  // IMU not ready
+    }
+    // Apply low-pass filter (0.9 = very responsive, prioritizes fresh data)
+    imuApplyLowPassFilter(imuData, 0.9f);
+    balanceGame->lastIMU = imuData;
   }
-
-  // Apply low-pass filter (use 0.9 for more responsiveness in games)
-  imuApplyLowPassFilter(imuData, 0.9f);
-  balanceGame->lastIMU = imuData;
 
   // ─── PHYSICS ──────────────────────────────────────────
   // Apply dead zone first (hysteresis prevents jitter at boundaries)
