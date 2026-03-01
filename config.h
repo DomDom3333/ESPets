@@ -23,9 +23,9 @@
 //   long press    → toggle sleep
 #define BTN_PIN    9   // BOOT button (GPIO 9 on ESP32-C6)
 
-// ── I2C (for MPU6050 IMU) ───────────────────────────────
-#define I2C_SDA_PIN 8   // I2C data line (GPIO 8)
-#define I2C_SCL_PIN 7   // I2C clock line (GPIO 7)
+// ── I2C (for QMI8658 IMU) ───────────────────────────────
+#define I2C_SDA_PIN 7   // I2C data line (GPIO 7)
+#define I2C_SCL_PIN 8   // I2C clock line (GPIO 8)
 
 // ── Screen geometry ───────────────────────────────────────
 #define SCREEN_W   240

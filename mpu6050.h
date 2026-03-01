@@ -1,24 +1,27 @@
 /*
- * mpu6050.h — MPU6050 6-axis IMU driver
+ * mpu6050.h — QMI8658 6-axis IMU driver
  * ────────────────────────────────────
  * I2C communication, calibration, and data reading.
  * Abstracts register access and provides calibrated accelerometer/gyro data.
+ *
+ * NOTE: File is named mpu6050.h for compatibility with existing includes.
+ * The actual hardware is a QMI8658 IMU (Waveshare ESP32C6-LCD-1.69).
  */
 #pragma once
 
 #include <Arduino.h>
 
 // I2C configuration
-#define I2C_SDA_PIN     8
-#define I2C_SCL_PIN     7
-#define I2C_FREQ        400000   // 400kHz standard I2C
-#define MPU6050_ADDR    0x68     // Default I2C address (AD0 grounded)
+#define I2C_SDA_PIN     7        // GPIO 7 = I2C SDA
+#define I2C_SCL_PIN     8        // GPIO 8 = I2C SCL
+#define I2C_FREQ        400000   // 400kHz fast mode
+#define QMI8658_ADDR    0x6B     // SA0=HIGH (default on Waveshare board)
 
 // Sensor structure for 6-axis data (calibrated)
 struct IMUData {
-  float accelX, accelY, accelZ;   // m/s² (or g-units after 1/9.8 conversion)
+  float accelX, accelY, accelZ;   // m/s²
   float gyroX, gyroY, gyroZ;      // degrees/second
-  float temperature;              // Celsius
+  float temperature;              // Celsius (unused but kept for API compat)
   uint32_t timestamp;             // milliseconds
 };
 
@@ -33,7 +36,7 @@ struct IMUCalibration {
 //  PUBLIC API
 // ══════════════════════════════════════════════════════════
 
-// Initialize I2C bus and wake up MPU6050
+// Initialize I2C bus and configure QMI8658
 // Returns: true if device responded (WHO_AM_I check passed)
 bool imuInit();
 
