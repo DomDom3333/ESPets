@@ -54,21 +54,29 @@ static void drawBallAt(float bx, float by, uint16_t color) {
   gfx->fillCircle(sx, sy, 3, color);
 }
 
-// Erase the ball by redrawing every maze cell the ball circle overlaps.
-// A single-cell erase is wrong when the 3px radius crosses a cell border.
+// Erase the ball by filling the bounding box with background color,
+// then redrawing all cells in that region. This ensures grid line pixels
+// (the gaps between cells) are fully cleared before cells are redrawn.
 static void eraseBallAt(float bx, float by) {
   int sx, sy;
   gameToScreen(bx, by, sx, sy);
 
-  // Cell range covered by the ball's bounding box (radius 3px).
-  // Expand by ±1 cell to ensure grid line pixels are fully covered.
-  const uint8_t* maze = balanceGameGetMazePattern();
-  int cxMin = constrain((sx - 3 - GAME_X) / CELL_W - 1, 0, 9);
-  int cxMax = constrain((sx + 3 - GAME_X) / CELL_W + 1, 0, 9);
-  int cyMin = constrain((sy - 3 - GAME_Y) / CELL_H - 1, 0, 7);
-  int cyMax = constrain((sy + 3 - GAME_Y) / CELL_H + 1, 0, 7);
+  // Ball's pixel bounding box (radius 3px)
+  int left = sx - 3;
+  int right = sx + 3;
+  int top = sy - 3;
+  int bottom = sy + 3;
 
-  // Redraw all overlapping cells with their correct maze colors
+  // Fill the entire bounding box with background color to erase all ball pixels
+  gfx->fillRect(left, top, right - left + 1, bottom - top + 1, COL_CELL_C);
+
+  // Now redraw all cells that overlap with the bounding box
+  const uint8_t* maze = balanceGameGetMazePattern();
+  int cxMin = constrain((left - GAME_X) / CELL_W, 0, 9);
+  int cxMax = constrain((right - GAME_X) / CELL_W, 0, 9);
+  int cyMin = constrain((top - GAME_Y) / CELL_H, 0, 7);
+  int cyMax = constrain((bottom - GAME_Y) / CELL_H, 0, 7);
+
   for (int cy = cyMin; cy <= cyMax; cy++) {
     for (int cx = cxMin; cx <= cxMax; cx++) {
       uint8_t cell = maze[cy * 10 + cx];
