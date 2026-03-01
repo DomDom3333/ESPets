@@ -23,11 +23,22 @@
 //   long press    → toggle sleep
 #define BTN_PIN    9   // BOOT button (GPIO 9 on ESP32-C6)
 
+// ── I2C (for QMI8658 IMU) ───────────────────────────────
+// SDA=8, SCL=7 (confirmed from hardware schematic)
+#define I2C_SDA_PIN 8   // I2C data line (GPIO 8)
+#define I2C_SCL_PIN 7   // I2C clock line (GPIO 7)
+
+// ── Sensor power enable ───────────────────────────────────
+// GPIO15 (BAT_EN) must be HIGH to power the I2C sensor rail
+#define PIN_SENSOR_PWR 15
+
 // ── Screen geometry ───────────────────────────────────────
 #define SCREEN_W   240
 #define SCREEN_H   280
 
 // ── Timing (ms) ───────────────────────────────────────────
+#define TARGET_FPS       60     // main loop frame rate cap
+#define FRAME_TIME_MS    (1000 / TARGET_FPS)  // ~16.67ms per frame
 #define ANIM_INTERVAL    600    // pet bob / blink cycle
 #define DECAY_INTERVAL   10000  // stat decay tick
 #define NOTIF_DURATION   2500   // notification display time

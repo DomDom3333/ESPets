@@ -39,9 +39,13 @@
 #include "pet.h"
 #include "creature_gen.h"
 #include "game_star.h"
+#include "game_rhythm.h"
+#include "game_balance.h"
+#include "mpu6050.h"
 #include "nav.h"
 #include "ui_common.h"
 #include "ui_main.h"
+#include "ui_play_balance.h"
 
 // ==========================================================
 //  SETUP
@@ -50,6 +54,13 @@ void setup() {
   Serial.begin(115200);
   delay(500);
   Serial.println("\n\n=== ESPets Tamagotchi v6 ===");
+
+  // ── Sensor power enable ───────────────────────────────
+  // GPIO15 (BAT_EN) must be HIGH to power the I2C sensor rail
+  // (QMI8658 IMU, PCF85063 RTC, ES8311 audio are all on this rail)
+  pinMode(PIN_SENSOR_PWR, OUTPUT);
+  digitalWrite(PIN_SENSOR_PWR, HIGH);
+  delay(20);  // Let sensor rail stabilize
 
   // ── Backlight ─────────────────────────────────────────
   pinMode(PIN_BL, OUTPUT);
@@ -72,6 +83,22 @@ void setup() {
 
   gfx->fillScreen(COL_BG_MAIN);
 
+  // ── IMU (QMI8658) ─────────────────────────────────────
+  Serial.println("\n[STARTUP] Initializing QMI8658 IMU (SDA=GPIO8, SCL=GPIO7)...");
+  if (imuInit()) {
+    // Calibration: device must be stationary for ~1 second
+    Serial.println("[STARTUP] Keep device LEVEL and STILL for calibration (1 second)...");
+    delay(500);
+    if (imuCalibrate(200)) {  // 200 samples @ 5ms = ~1 second
+      Serial.println("[STARTUP] ✓ IMU ready!");
+    } else {
+      Serial.println("[STARTUP] ✗ IMU calibration failed");
+    }
+  } else {
+    Serial.println("[STARTUP] ✗ QMI8658 NOT FOUND on I2C - check wiring");
+    Serial.println("[STARTUP] Tilt games will not work");
+  }
+
   // ── Creature generation (from ChipId) ──────────────────
   uint64_t mac = ESP.getEfuseMac();
   uint32_t chipSeed = (uint32_t)(mac ^ (mac >> 32));
@@ -87,6 +114,8 @@ void setup() {
   // ── Init game & state ─────────────────────────────────
   randomSeed((uint32_t)esp_random());
   starGameReset();
+  rhythmGameInit();
+  balanceGameInit();
   viewDirty = true;
 
   Serial.println("=== Boot complete ===");
@@ -96,10 +125,32 @@ void setup() {
 //  LOOP
 // ==========================================================
 void loop() {
+  // ── Frame rate cap (60 FPS = ~16.67ms per frame) ────────────
+  static uint32_t lastFrameTime = 0;
   uint32_t now = millis();
+  uint32_t elapsedSinceLastFrame = now - lastFrameTime;
+
+  if (elapsedSinceLastFrame < FRAME_TIME_MS) {
+    delay(FRAME_TIME_MS - elapsedSinceLastFrame);
+    lastFrameTime = millis();
+  } else {
+    lastFrameTime = now;
+  }
+
+  now = millis();  // Update now after potential delay
 
   // ── Input ─────────────────────────────────────────────
   inputUpdate();
+
+  // ── Game updates ───────────────────────────────────────
+  if (currentView == VIEW_PLAY_RHYTHM) {
+    rhythmGameUpdate();
+  } else if (currentView == VIEW_PLAY_BALANCE) {
+    balanceGameUpdate();       // physics + IMU read (rate-limited inside)
+    if (!viewDirty) {
+      uiPlayBalanceAnimate();  // draw at 60 FPS, not the 600ms anim tick
+    }
+  }
 
   // ── Full redraw (view switch or forced) ───────────────
   if (viewDirty) {
