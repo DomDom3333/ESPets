@@ -67,6 +67,7 @@ static void eraseBallAt(float bx, float by) {
   int cyMin = constrain((sy - 3 - GAME_Y) / CELL_H, 0, 7);
   int cyMax = constrain((sy + 3 - GAME_Y) / CELL_H, 0, 7);
 
+  // Redraw cells
   for (int cy = cyMin; cy <= cyMax; cy++) {
     for (int cx = cxMin; cx <= cxMax; cx++) {
       uint8_t cell = maze[cy * 10 + cx];
@@ -74,6 +75,28 @@ static void eraseBallAt(float bx, float by) {
                        (cell == MAZE_GOAL) ? COL_GOAL_C : COL_CELL_C;
       gfx->fillRect(GAME_X + cx * CELL_W, GAME_Y + cy * CELL_H,
                     CELL_W - 1, CELL_H - 1, color);
+    }
+  }
+
+  // Redraw grid lines in the affected region. Grid lines are 1-pixel gaps
+  // between cells (created by drawing cells with CELL_W-1, CELL_H-1 width).
+  // The ball can touch these gaps, leaving blue pixels, so redraw them.
+  // Vertical grid lines
+  for (int cx = cxMin; cx <= cxMax + 1; cx++) {
+    if (cx > 0 && cx <= 9) {
+      int x = GAME_X + cx * CELL_W - 1;
+      int y = GAME_Y + cyMin * CELL_H;
+      int h = (cyMax + 1 - cyMin) * CELL_H;
+      gfx->drawFastVLine(x, y, h, COL_DIM);
+    }
+  }
+  // Horizontal grid lines
+  for (int cy = cyMin; cy <= cyMax + 1; cy++) {
+    if (cy > 0 && cy <= 7) {
+      int y = GAME_Y + cy * CELL_H - 1;
+      int x = GAME_X + cxMin * CELL_W;
+      int w = (cxMax + 1 - cxMin) * CELL_W;
+      gfx->drawFastHLine(x, y, w, COL_DIM);
     }
   }
 }
