@@ -51,6 +51,13 @@ static void drawBallAt(float bx, float by, uint16_t color) {
 }
 
 // ══════════════════════════════════════════════════════════
+//  ANIMATION STATE
+// ══════════════════════════════════════════════════════════
+
+// Track previous ball position so we can erase it without full redraw
+static float prevBallX = -1, prevBallY = -1;
+
+// ══════════════════════════════════════════════════════════
 //  FULL DRAW (on view entry)
 // ══════════════════════════════════════════════════════════
 
@@ -105,9 +112,6 @@ void uiPlayBalanceDraw() {
 // ══════════════════════════════════════════════════════════
 //  ANIMATION UPDATE (called frequently during gameplay)
 // ══════════════════════════════════════════════════════════
-
-// Track previous ball position so we can erase it without full redraw
-static float prevBallX = -1, prevBallY = -1;
 
 void uiPlayBalanceAnimate() {
   // Erase previous ball position
