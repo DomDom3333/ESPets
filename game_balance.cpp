@@ -129,6 +129,11 @@ void balanceGameStartLevel(int difficulty) {
   balanceGame->levelStartTime = millis();
   balanceGame->lastMazeRotate = millis();
 
+  // Recalibrate IMU at game start (device must be held level and still for ~1 second)
+  Serial.println("[BALANCE] Recalibrating IMU sensor...");
+  imuCalibrate(200);  // 200 samples ≈ 1 second
+  Serial.println("[BALANCE] IMU calibration complete!");
+
   // Ball starts in center
   balanceGame->ballX = 50.0f;
   balanceGame->ballY = 50.0f;
