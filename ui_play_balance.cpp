@@ -41,13 +41,41 @@ static void drawMazeFull() {
   gfx->drawRect(GAME_X - 1, GAME_Y - 1, GAME_W + 2, GAME_H + 2, COL_DIM);
 }
 
-static void drawBallAt(float bx, float by, uint16_t color) {
-  // Convert 0-100 game coords to screen pixels inside the game area
-  int sx = GAME_X + (int)(bx * GAME_W / 100.0f);
-  int sy = GAME_Y + (int)(by * GAME_H / 80.0f);
+static void gameToScreen(float bx, float by, int& sx, int& sy) {
+  sx = GAME_X + (int)(bx * GAME_W / 100.0f);
+  sy = GAME_Y + (int)(by * GAME_H / 80.0f);
   sx = constrain(sx, GAME_X + 3, GAME_X + GAME_W - 3);
   sy = constrain(sy, GAME_Y + 3, GAME_Y + GAME_H - 3);
+}
+
+static void drawBallAt(float bx, float by, uint16_t color) {
+  int sx, sy;
+  gameToScreen(bx, by, sx, sy);
   gfx->fillCircle(sx, sy, 3, color);
+}
+
+// Erase the ball by redrawing every maze cell the ball circle overlaps.
+// A single-cell erase is wrong when the 3px radius crosses a cell border.
+static void eraseBallAt(float bx, float by) {
+  int sx, sy;
+  gameToScreen(bx, by, sx, sy);
+
+  // Cell range covered by the ball's bounding box (radius 3px)
+  const uint8_t* maze = balanceGameGetMazePattern();
+  int cxMin = constrain((sx - 3 - GAME_X) / CELL_W, 0, 9);
+  int cxMax = constrain((sx + 3 - GAME_X) / CELL_W, 0, 9);
+  int cyMin = constrain((sy - 3 - GAME_Y) / CELL_H, 0, 7);
+  int cyMax = constrain((sy + 3 - GAME_Y) / CELL_H, 0, 7);
+
+  for (int cy = cyMin; cy <= cyMax; cy++) {
+    for (int cx = cxMin; cx <= cxMax; cx++) {
+      uint8_t cell = maze[cy * 10 + cx];
+      uint16_t color = (cell == MAZE_WALL) ? COL_WALL_C :
+                       (cell == MAZE_GOAL) ? COL_GOAL_C : COL_CELL_C;
+      gfx->fillRect(GAME_X + cx * CELL_W, GAME_Y + cy * CELL_H,
+                    CELL_W - 1, CELL_H - 1, color);
+    }
+  }
 }
 
 // ══════════════════════════════════════════════════════════
@@ -114,18 +142,9 @@ void uiPlayBalanceDraw() {
 // ══════════════════════════════════════════════════════════
 
 void uiPlayBalanceAnimate() {
-  // Erase previous ball position
+  // Erase previous ball position — redraw all cells the circle overlapped
   if (prevBallX >= 0) {
-    // Redraw the cell under the old ball position
-    const uint8_t* maze = balanceGameGetMazePattern();
-    int cx = (int)(prevBallX * 10 / 100.0f);  // Game X (0-100) → cell col (0-10)
-    int cy = (int)(prevBallY / 10.0f);         // Game Y (0-80, cell_size=10) → cell row (0-8)
-    cx = constrain(cx, 0, 9);
-    cy = constrain(cy, 0, 7);
-    uint8_t cell = maze[cy * 10 + cx];
-    uint16_t color = (cell == MAZE_WALL) ? COL_WALL_C :
-                     (cell == MAZE_GOAL) ? COL_GOAL_C : COL_CELL_C;
-    drawBallAt(prevBallX, prevBallY, color);
+    eraseBallAt(prevBallX, prevBallY);
   }
 
   float bx = balanceGameGetBallX();
