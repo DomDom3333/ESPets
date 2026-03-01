@@ -6,6 +6,7 @@
 #include "ui_play_balance.h"
 #include "game_balance.h"
 #include "ui_common.h"
+#include "nav.h"
 
 // Maze rendering geometry (fits within 240x280 screen)
 #define GAME_X      8    // Game area x offset
@@ -25,18 +26,27 @@
 //  HELPERS
 // ══════════════════════════════════════════════════════════
 
-static void drawMazeFull() {
-  // Draw entire maze grid from current state
-  const uint8_t* maze = balanceGameGetMazePattern();
-  for (int y = 0; y < 8; y++) {
-    for (int x = 0; x < 10; x++) {
-      uint8_t cell = maze[y * 10 + x];
-      uint16_t color = (cell == MAZE_WALL) ? COL_WALL_C :
-                       (cell == MAZE_GOAL) ? COL_GOAL_C : COL_CELL_C;
-      gfx->fillRect(GAME_X + x * CELL_W, GAME_Y + y * CELL_H,
-                    CELL_W - 1, CELL_H - 1, color);
-    }
+static void drawMazeCell(int cx, int cy, uint8_t cellType) {
+  int px = GAME_X + cx * CELL_W;
+  int py = GAME_Y + cy * CELL_H;
+  // Always clear full cell area first
+  gfx->fillRect(px, py, CELL_W - 1, CELL_H - 1, COL_CELL_C);
+  if (cellType == MAZE_WALL) {
+    int ww, wh;
+    balanceGameGetWallDrawSize(ww, wh);
+    int offX = ((CELL_W - 1) - ww) / 2;
+    int offY = ((CELL_H - 1) - wh) / 2;
+    gfx->fillRect(px + offX, py + offY, ww, wh, COL_WALL_C);
+  } else if (cellType == MAZE_GOAL) {
+    gfx->fillRect(px, py, CELL_W - 1, CELL_H - 1, COL_GOAL_C);
   }
+}
+
+static void drawMazeFull() {
+  const uint8_t* maze = balanceGameGetMazePattern();
+  for (int y = 0; y < 8; y++)
+    for (int x = 0; x < 10; x++)
+      drawMazeCell(x, y, maze[y * 10 + x]);
   // Border around maze
   gfx->drawRect(GAME_X - 1, GAME_Y - 1, GAME_W + 2, GAME_H + 2, COL_DIM);
 }
@@ -77,15 +87,9 @@ static void eraseBallAt(float bx, float by) {
   int cyMin = constrain((top - GAME_Y) / CELL_H, 0, 7);
   int cyMax = constrain((bottom - GAME_Y) / CELL_H, 0, 7);
 
-  for (int cy = cyMin; cy <= cyMax; cy++) {
-    for (int cx = cxMin; cx <= cxMax; cx++) {
-      uint8_t cell = maze[cy * 10 + cx];
-      uint16_t color = (cell == MAZE_WALL) ? COL_WALL_C :
-                       (cell == MAZE_GOAL) ? COL_GOAL_C : COL_CELL_C;
-      gfx->fillRect(GAME_X + cx * CELL_W, GAME_Y + cy * CELL_H,
-                    CELL_W - 1, CELL_H - 1, color);
-    }
-  }
+  for (int cy = cyMin; cy <= cyMax; cy++)
+    for (int cx = cxMin; cx <= cxMax; cx++)
+      drawMazeCell(cx, cy, maze[cy * 10 + cx]);
 }
 
 // ══════════════════════════════════════════════════════════
@@ -131,14 +135,15 @@ void uiPlayBalanceDraw() {
   gfx->printf("Best:%d", balanceGame->bestScore);
 
   // Timer bar
-  uint32_t timeLeft = 30000;
+  uint32_t timeLimit = balanceGame->levelTimeLimit;
+  uint32_t timeLeft = timeLimit;
   if (balanceGame->levelStartTime > 0) {
     uint32_t elapsed = millis() - balanceGame->levelStartTime;
-    timeLeft = (elapsed < 30000) ? 30000 - elapsed : 0;
+    timeLeft = (elapsed < timeLimit) ? timeLimit - elapsed : 0;
   }
-  int timerFill = (int)(timeLeft * 200 / 30000);
+  int timerFill = (int)(timeLeft * 200 / timeLimit);
   gfx->fillRect(20, GAME_Y + GAME_H + 20, 200, 5, COL_DARK);
-  uint16_t tc = (timeLeft > 15000) ? COL_GREEN : (timeLeft > 7500 ? COL_YELLOW : COL_PINK);
+  uint16_t tc = (timeLeft > timeLimit / 2) ? COL_GREEN : (timeLeft > timeLimit / 4 ? COL_YELLOW : COL_PINK);
   if (timerFill > 0) gfx->fillRect(20, GAME_Y + GAME_H + 20, timerFill, 5, tc);
   gfx->drawRect(20, GAME_Y + GAME_H + 20, 200, 5, COL_DIM);
 
@@ -166,30 +171,49 @@ void uiPlayBalanceAnimate() {
   prevBallY = by;
 
   // ─── TIMER BAR UPDATE ─────────────────────────────────
-  uint32_t timeLeft = 30000;
+  uint32_t timeLimit = balanceGame->levelTimeLimit;
+  uint32_t timeLeft = timeLimit;
   if (balanceGame->levelStartTime > 0) {
     uint32_t elapsed = millis() - balanceGame->levelStartTime;
-    timeLeft = (elapsed < 30000) ? 30000 - elapsed : 0;
+    timeLeft = (elapsed < timeLimit) ? timeLimit - elapsed : 0;
   }
-  int timerFill = (int)(timeLeft * 200 / 30000);
+  int timerFill = (int)(timeLeft * 200 / timeLimit);
   gfx->fillRect(20, GAME_Y + GAME_H + 20, 200, 5, COL_DARK);
-  uint16_t tc = (timeLeft > 15000) ? COL_GREEN : (timeLeft > 7500 ? COL_YELLOW : COL_PINK);
+  uint16_t tc = (timeLeft > timeLimit / 2) ? COL_GREEN : (timeLeft > timeLimit / 4 ? COL_YELLOW : COL_PINK);
   if (timerFill > 0) gfx->fillRect(20, GAME_Y + GAME_H + 20, timerFill, 5, tc);
 
   // ─── LEVEL COMPLETE OVERLAY ────────────────────────────
   if (balanceGameIsLevelComplete()) {
-    gfx->fillRect(30, 80, SCREEN_W - 60, 36, COL_GREEN);
-    gfx->setTextColor(COL_WHITE); gfx->setTextSize(2);
-    gfx->setCursor(38, 100);
-    gfx->print("LEVEL DONE!");
+    bool isLastLevel = (balanceGameGetLevel() == BALANCE_MAX_LEVEL);
+
+    if (isLastLevel) {
+      gfx->fillRect(20, 75, SCREEN_W - 40, 56, COL_GREEN);
+      gfx->setTextColor(COL_WHITE); gfx->setTextSize(2);
+      gfx->setCursor(35, 88);
+      gfx->print("COMPLETE!");
+      gfx->setTextSize(1);
+      gfx->setCursor(32, 112);
+      gfx->print("JOY +20  Going home...");
+    } else {
+      gfx->fillRect(30, 80, SCREEN_W - 60, 36, COL_GREEN);
+      gfx->setTextColor(COL_WHITE); gfx->setTextSize(2);
+      gfx->setCursor(38, 100);
+      gfx->print("LEVEL DONE!");
+    }
 
     static uint32_t completeTime = 0;
     if (completeTime == 0) completeTime = millis();
     if (millis() - completeTime > 2000) {
-      balanceGameCheckWinCondition();
       completeTime = 0;
-      prevBallX = -1;  // Force full repaint
-      viewDirty = true;
+      prevBallX = -1;
+      if (isLastLevel) {
+        pet.happy  = (uint8_t)min(100, (int)pet.happy  + 20);
+        pet.energy = (uint8_t)max(0,   (int)pet.energy -  5);
+        navSwitchView(VIEW_MAIN);
+      } else {
+        balanceGameCheckWinCondition();
+        viewDirty = true;
+      }
     }
   } else if (balanceGameIsLevelFailed()) {
     gfx->fillRect(30, 80, SCREEN_W - 60, 36, COL_PINK);

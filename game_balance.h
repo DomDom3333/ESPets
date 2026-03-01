@@ -16,6 +16,8 @@ enum BalanceDifficulty {
   BALANCE_HARD = 2
 };
 
+#define BALANCE_MAX_LEVEL 5
+
 // Maze cell types
 #define MAZE_EMPTY   0
 #define MAZE_WALL    1
@@ -41,7 +43,6 @@ struct BalanceGameState {
 
   // Maze
   uint8_t mazePattern[8][10];  // 8 rows x 10 cols of cells
-  uint32_t lastMazeRotate = 0;
 
   // IMU cache
   IMUData lastIMU;
@@ -52,7 +53,7 @@ extern BalanceGameState* balanceGame;
 // Game lifecycle
 void balanceGameInit();                  // Called once at boot
 void balanceGameReset();                 // Reset to level 1, easy
-void balanceGameStartLevel(int difficulty);
+void balanceGameStartLevel(int level);       // 1 = easiest, 5 = hardest
 void balanceGameUpdate();                // Called every frame
 void balanceGameCheckWinCondition();
 
@@ -64,3 +65,4 @@ int   balanceGameGetLevel();
 bool  balanceGameIsLevelComplete();
 bool  balanceGameIsLevelFailed();
 const uint8_t* balanceGameGetMazePattern();  // Returns pointer to mazePattern
+void           balanceGameGetWallDrawSize(int& w, int& h);  // Wall pixel size for current level
