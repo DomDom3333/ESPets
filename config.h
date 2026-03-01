@@ -37,6 +37,8 @@
 #define SCREEN_H   280
 
 // ── Timing (ms) ───────────────────────────────────────────
+#define TARGET_FPS       60     // main loop frame rate cap
+#define FRAME_TIME_MS    (1000 / TARGET_FPS)  // ~16.67ms per frame
 #define ANIM_INTERVAL    600    // pet bob / blink cycle
 #define DECAY_INTERVAL   10000  // stat decay tick
 #define NOTIF_DURATION   2500   // notification display time

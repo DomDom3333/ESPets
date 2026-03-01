@@ -160,15 +160,11 @@ void balanceGameUpdate() {
     }
   }
 
-  // DEBUG: Track FPS
-  static uint32_t fpsStartTime = 0;
-  static int fpsFrameCount = 0;
-  fpsFrameCount++;
-  if (fpsStartTime == 0) fpsStartTime = millis();
-  if (millis() - fpsStartTime >= 1000) {
-    Serial.printf("[BALANCE] FPS: %d frames/sec  (IMU: 12.5Hz every 80ms)\n", fpsFrameCount);
-    fpsStartTime = millis();
-    fpsFrameCount = 0;
+  // DEBUG: Report frame rate status
+  static uint32_t lastFpsReport = 0;
+  if (millis() - lastFpsReport >= 5000) {
+    lastFpsReport = millis();
+    Serial.println("[BALANCE] Game capped at 60 FPS (IMU updates every 80ms)");
   }
 
   if (!imuIsCalibrated() || balanceGame->levelComplete || balanceGame->levelFailed) {

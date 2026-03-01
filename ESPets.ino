@@ -124,7 +124,19 @@ void setup() {
 //  LOOP
 // ==========================================================
 void loop() {
+  // ── Frame rate cap (60 FPS = ~16.67ms per frame) ────────────
+  static uint32_t lastFrameTime = 0;
   uint32_t now = millis();
+  uint32_t elapsedSinceLastFrame = now - lastFrameTime;
+
+  if (elapsedSinceLastFrame < FRAME_TIME_MS) {
+    delay(FRAME_TIME_MS - elapsedSinceLastFrame);
+    lastFrameTime = millis();
+  } else {
+    lastFrameTime = now;
+  }
+
+  now = millis();  // Update now after potential delay
 
   // ── Input ─────────────────────────────────────────────
   inputUpdate();
